@@ -3,29 +3,45 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#050507">
     <title>Pulse Computers</title>
+
+    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="/css/style.css">
+
+    <!-- Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+
+    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
+
+    <!-- Supabase SDK — ОБЯЗАТЕЛЬНО ДО app.js -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+    <!-- Styles -->
+    <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
 
-<!-- SPLASH -->
+<!-- ==================== SPLASH ==================== -->
 <div class="splash-screen" id="splashScreen">
-    <img id="splashLogo" src="/assets/logo.png" alt="Pulse Computers" class="splash-logo">
-    <div class="splash-bar"><div class="splash-bar-fill"></div></div>
+    <img id="splashLogo" src="assets/logo.png" alt="Pulse Computers" class="splash-logo">
+    <div class="splash-bar">
+        <div class="splash-bar-fill"></div>
+    </div>
+    <p class="splash-tagline">Pulse Computers</p>
 </div>
 
-<!-- APP -->
+<!-- ==================== APP ==================== -->
 <div class="app hidden" id="app">
 
     <!-- HEADER -->
     <header class="header" id="header">
         <div class="header-inner">
-            <img id="headerLogo" src="/assets/logo.png" alt="PC" class="header-logo">
+            <img src="assets/logo.png" alt="Pulse Computers" class="header-logo">
+            <span class="header-title">Pulse Computers</span>
         </div>
     </header>
 
@@ -51,27 +67,32 @@
             <i class="ph-bold ph-squares-four"></i>
             <span>Меню</span>
         </button>
-        <!-- Админ-вкладка, скрыта по умолчанию -->
         <button class="nav-btn hidden" data-section="admin" id="adminNavBtn">
             <i class="ph-bold ph-shield-check"></i>
             <span>Админ</span>
         </button>
     </nav>
 
-    <!-- CONTENT -->
+    <!-- MAIN CONTENT -->
     <main class="content" id="content">
 
-        <!-- ===== HOME ===== -->
+        <!-- ============================= HOME ============================= -->
         <section class="section active" id="section-home">
+
+            <!-- Hero Banner -->
             <div class="hero-banner">
-                <img src="/assets/hero_welcome.png" alt="" class="hero-img">
+                <img src="assets/hero_welcome.png" alt="" class="hero-img">
                 <div class="hero-overlay">
-                    <img src="/assets/logo.png" alt="PC" class="hero-logo-big">
+                    <img src="assets/logo.png" alt="PC" class="hero-logo-big">
                     <p class="hero-tagline">Сборка. Ремонт. Кастомизация.</p>
-                    <p class="hero-city">Краснодар</p>
+                    <p class="hero-city">
+                        <i class="ph-bold ph-map-pin"></i>
+                        Краснодар
+                    </p>
                 </div>
             </div>
 
+            <!-- Quick Nav Grid -->
             <div class="home-grid">
                 <div class="home-card" data-navigate="services">
                     <i class="ph-bold ph-wrench"></i>
@@ -99,31 +120,34 @@
                 </div>
             </div>
 
+            <!-- Promo Banners -->
             <div class="home-banners">
-                <img src="/assets/banner_warranty.png" alt="Гарантия" class="promo-banner" data-navigate="delivery">
-                <img src="/assets/banner_components.png" alt="Комплектующие" class="promo-banner" data-navigate="products">
-                <img src="/assets/banner_testing.png" alt="Тестирование" class="promo-banner" data-navigate="services">
+                <img src="assets/banner_warranty.png"   alt="Гарантия"        class="promo-banner" data-navigate="delivery">
+                <img src="assets/banner_components.png" alt="Комплектующие"   class="promo-banner" data-navigate="products">
+                <img src="assets/banner_testing.png"    alt="Тестирование"    class="promo-banner" data-navigate="services">
             </div>
 
+            <!-- CTA -->
             <a href="#" class="home-contact-btn" data-manager-link target="_blank">
                 <i class="ph-bold ph-chat-circle-dots"></i>
                 Написать менеджеру
             </a>
+
         </section>
 
-        <!-- ===== SERVICES ===== -->
+        <!-- ============================= SERVICES ============================= -->
         <section class="section" id="section-services">
             <div class="page-title">
                 <h2>Услуги</h2>
                 <p>Ремонт и обслуживание техники</p>
             </div>
-            <img src="/assets/banner_software.png" alt="" class="section-banner">
+            <img src="assets/banner_software.png" alt="" class="section-banner">
             <div class="services-list" id="servicesList">
                 <div class="loading-spinner"></div>
             </div>
         </section>
 
-        <!-- ===== SERVICE FORM ===== -->
+        <!-- ============================= SERVICE FORM ============================= -->
         <section class="section" id="section-service-form">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="services">
@@ -137,20 +161,20 @@
             </form>
         </section>
 
-        <!-- ===== BUILDS ===== -->
+        <!-- ============================= BUILDS ============================= -->
         <section class="section" id="section-builds">
             <div class="page-title">
                 <h2>Сборки ПК</h2>
                 <p>Готовые конфигурации и индивидуальные проекты</p>
             </div>
-            <img src="/assets/banner_builds.png" alt="" class="section-banner">
+            <img src="assets/banner_builds.png" alt="" class="section-banner">
             <div class="builds-list" id="buildsList">
                 <div class="loading-spinner"></div>
             </div>
             <div class="divider"></div>
             <div class="cta-card">
                 <h3>Индивидуальная сборка</h3>
-                <p>Расскажите о задачах и бюджете, мы подберем идеальную конфигурацию</p>
+                <p>Расскажите о задачах и бюджете — мы подберём идеальную конфигурацию</p>
                 <button class="btn btn-primary btn-block" id="openCustomBuildForm">
                     <i class="ph-bold ph-pencil-simple-line"></i>
                     Заполнить заявку
@@ -158,7 +182,117 @@
             </div>
         </section>
 
-        <!-- ===== PORTFOLIO ===== -->
+        <!-- ============================= BUILD FORM ============================= -->
+        <section class="section" id="section-build-form">
+            <div class="sub-header">
+                <button class="back-btn" data-navigate="builds">
+                    <i class="ph-bold ph-arrow-left"></i>
+                </button>
+                <h2>Заявка на сборку</h2>
+            </div>
+            <img src="assets/banner_builds.png" alt="" class="form-banner-img">
+            <p class="form-subtitle" id="buildFormTypeName"></p>
+
+            <form id="buildForm" class="form-card">
+                <input type="hidden" id="buildTypeId">
+                <input type="hidden" id="buildTypeName">
+                <input type="hidden" id="buildTypePrice" value="0">
+
+                <div class="form-group">
+                    <label>Контакт для связи <span class="req">*</span></label>
+                    <input type="text" id="buildContact" placeholder="Телефон или @telegram" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Бюджет (руб.) <span class="req">*</span></label>
+                    <input type="number" id="buildBudget" placeholder="100 000" min="5000" step="1000" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Основные задачи <span class="req">*</span></label>
+                    <select id="buildTasks" required>
+                        <option value="">— Выберите —</option>
+                        <option value="Игры">Игры</option>
+                        <option value="Офис">Офис</option>
+                        <option value="Работа с графикой">Графика / Видеомонтаж</option>
+                        <option value="Работа со звуком">Звук / Музыка</option>
+                        <option value="Домашний ПК">Домашний ПК</option>
+                        <option value="Хранилище">Хранилище / NAS</option>
+                        <option value="Стриминг">Стриминг</option>
+                        <option value="Серверные задачи">Сервер</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Цвет корпуса</label>
+                    <input type="text" id="buildColor" placeholder="Чёрный, белый, красный...">
+                </div>
+
+                <div class="form-group">
+                    <label>Подсветка</label>
+                    <select id="buildRGB">
+                        <option value="Без подсветки">Без подсветки</option>
+                        <option value="RGB подсветка">RGB</option>
+                        <option value="Одноцветная">Одноцветная</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Кастомизация</label>
+                    <select id="buildVinyl">
+                        <option value="Не нужна">Не нужна</option>
+                        <option value="Винилография">Винилография</option>
+                        <option value="Фулл кастом">Индивидуальный проект</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label>Доставка <span class="req">*</span></label>
+                    <select id="buildDeliveryType" required>
+                        <option value="Самовывоз">Самовывоз</option>
+                        <option value="СДЭК">СДЭК</option>
+                    </select>
+                </div>
+
+                <!-- CDEK Fields -->
+                <div id="cdekFields" class="cdek-block hidden">
+                    <div class="form-group">
+                        <label>ФИО получателя</label>
+                        <input type="text" id="buildDeliveryFio" placeholder="Иванов Иван Иванович">
+                    </div>
+                    <div class="form-group">
+                        <label>Адрес пункта СДЭК</label>
+                        <input type="text" id="buildDeliveryAddress" placeholder="Город, улица, дом">
+                    </div>
+                    <div class="form-group">
+                        <label>Телефон получателя</label>
+                        <input type="tel" id="buildDeliveryPhone" placeholder="+7 (999) 123-45-67">
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Дополнительные пожелания</label>
+                    <textarea id="buildNotes" rows="3" placeholder="Любые уточнения по сборке..."></textarea>
+                </div>
+
+                <button type="submit" class="btn btn-primary btn-block">
+                    <i class="ph-bold ph-paper-plane-tilt"></i>
+                    Отправить заявку
+                </button>
+            </form>
+
+            <!-- Installment Card -->
+            <div class="installment-card">
+                <i class="ph-bold ph-percent"></i>
+                <div class="installment-text">
+                    <h3>Рассрочка и Доли</h3>
+                    <p>До 36 месяцев или 4 платежа до 70 000 руб.</p>
+                </div>
+                <a href="#" class="btn btn-ghost btn-small" data-manager-link target="_blank">Оформить</a>
+            </div>
+        </section>
+
+        <!-- ============================= PORTFOLIO ============================= -->
         <section class="section" id="section-portfolio">
             <div class="page-title">
                 <h2>Портфолио</h2>
@@ -176,7 +310,7 @@
             </div>
         </section>
 
-        <!-- ===== MORE / MENU ===== -->
+        <!-- ============================= MORE / MENU ============================= -->
         <section class="section" id="section-more">
             <div class="page-title">
                 <h2>Меню</h2>
@@ -229,92 +363,7 @@
             </a>
         </section>
 
-        <!-- ===== BUILD FORM ===== -->
-        <section class="section" id="section-build-form">
-            <div class="sub-header">
-                <button class="back-btn" data-navigate="builds">
-                    <i class="ph-bold ph-arrow-left"></i>
-                </button>
-                <h2>Заявка на сборку</h2>
-            </div>
-            <img src="/assets/banner_builds.png" alt="" class="form-banner-img">
-            <p class="form-subtitle" id="buildFormTypeName"></p>
-            <form id="buildForm" class="form-card">
-                <input type="hidden" id="buildTypeId">
-                <input type="hidden" id="buildTypeName">
-                <input type="hidden" id="buildTypePrice" value="0">
-
-                <label>Контакт для связи</label>
-                <input type="text" id="buildContact" placeholder="Телефон или @telegram" required>
-
-                <label>Бюджет (руб.)</label>
-                <input type="number" id="buildBudget" placeholder="100 000" min="5000" step="1000" required>
-
-                <label>Основные задачи</label>
-                <select id="buildTasks" required>
-                    <option value="">Выберите</option>
-                    <option value="Игры">Игры</option>
-                    <option value="Офис">Офис</option>
-                    <option value="Работа с графикой">Графика / Видеомонтаж</option>
-                    <option value="Работа со звуком">Звук / Музыка</option>
-                    <option value="Домашний ПК">Домашний ПК</option>
-                    <option value="Хранилище">Хранилище / NAS</option>
-                    <option value="Стриминг">Стриминг</option>
-                    <option value="Серверные задачи">Сервер</option>
-                </select>
-
-                <label>Цвет корпуса</label>
-                <input type="text" id="buildColor" placeholder="Черный, белый, красный...">
-
-                <label>Подсветка</label>
-                <select id="buildRGB">
-                    <option value="Без подсветки">Без подсветки</option>
-                    <option value="RGB подсветка">RGB</option>
-                    <option value="Одноцветная">Одноцветная</option>
-                </select>
-
-                <label>Кастомизация</label>
-                <select id="buildVinyl">
-                    <option value="Не нужна">Не нужна</option>
-                    <option value="Винилография">Винилография</option>
-                    <option value="Фулл кастом">Индивидуальный проект</option>
-                </select>
-
-                <label>Доставка</label>
-                <select id="buildDeliveryType" required>
-                    <option value="Самовывоз">Самовывоз</option>
-                    <option value="СДЭК">СДЭК</option>
-                </select>
-
-                <div id="cdekFields" class="cdek-block hidden">
-                    <label>ФИО получателя</label>
-                    <input type="text" id="buildDeliveryFio" placeholder="Иванов Иван Иванович">
-                    <label>Адрес пункта СДЭК</label>
-                    <input type="text" id="buildDeliveryAddress" placeholder="Город, улица, дом">
-                    <label>Телефон получателя</label>
-                    <input type="tel" id="buildDeliveryPhone" placeholder="+7 (999) 123-45-67">
-                </div>
-
-                <label>Дополнительные пожелания</label>
-                <textarea id="buildNotes" rows="3" placeholder="Любые уточнения"></textarea>
-
-                <button type="submit" class="btn btn-primary btn-block">
-                    <i class="ph-bold ph-paper-plane-tilt"></i>
-                    Отправить заявку
-                </button>
-            </form>
-
-            <div class="installment-card">
-                <i class="ph-bold ph-percent"></i>
-                <div class="installment-text">
-                    <h3>Рассрочка и Доли</h3>
-                    <p>До 36 месяцев или 4 платежа до 70 000 руб.</p>
-                </div>
-                <a href="#" class="btn btn-ghost btn-small" data-manager-link target="_blank">Оформить</a>
-            </div>
-        </section>
-
-        <!-- ===== BUYOUT FORM ===== -->
+        <!-- ============================= BUYOUT FORM ============================= -->
         <section class="section" id="section-buyout">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -322,34 +371,39 @@
                 </button>
                 <h2>Скупка техники</h2>
             </div>
-            <img src="/assets/banner_buyout.png" alt="" class="section-banner">
+            <img src="assets/banner_buyout.png" alt="" class="section-banner">
             <p class="form-subtitle">Покупаем б/у компьютеры, ноутбуки и комплектующие. Оценка бесплатно.</p>
+
             <form id="buyoutForm" class="form-card">
-                <label>Контакт для связи</label>
-                <input type="text" id="buyoutContact" placeholder="Телефон или @telegram" required>
-
-                <label>Тип устройства</label>
-                <select id="buyoutDeviceType" required>
-                    <option value="">Выберите</option>
-                    <option value="Ноутбук">Ноутбук</option>
-                    <option value="Компьютер">Компьютер</option>
-                    <option value="Комплектующее">Отдельное комплектующее</option>
-                    <option value="Другое">Другое</option>
-                </select>
-
-                <label>Состояние</label>
-                <select id="buyoutCondition" required>
-                    <option value="">Выберите</option>
-                    <option value="Отличное">Отличное</option>
-                    <option value="Хорошее">Хорошее</option>
-                    <option value="Удовлетворительное">Удовлетворительное</option>
-                    <option value="Плохое">Плохое</option>
-                    <option value="Не включается">Не включается</option>
-                </select>
-
-                <label>Неисправности (если есть)</label>
-                <textarea id="buyoutDefects" rows="3" placeholder="Опишите или напишите 'нет'"></textarea>
-
+                <div class="form-group">
+                    <label>Контакт для связи <span class="req">*</span></label>
+                    <input type="text" id="buyoutContact" placeholder="Телефон или @telegram" required>
+                </div>
+                <div class="form-group">
+                    <label>Тип устройства <span class="req">*</span></label>
+                    <select id="buyoutDeviceType" required>
+                        <option value="">— Выберите —</option>
+                        <option value="Ноутбук">Ноутбук</option>
+                        <option value="Компьютер">Компьютер</option>
+                        <option value="Комплектующее">Отдельное комплектующее</option>
+                        <option value="Другое">Другое</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Состояние <span class="req">*</span></label>
+                    <select id="buyoutCondition" required>
+                        <option value="">— Выберите —</option>
+                        <option value="Отличное">Отличное</option>
+                        <option value="Хорошее">Хорошее</option>
+                        <option value="Удовлетворительное">Удовлетворительное</option>
+                        <option value="Плохое">Плохое</option>
+                        <option value="Не включается">Не включается</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Неисправности (если есть)</label>
+                    <textarea id="buyoutDefects" rows="3" placeholder="Опишите или напишите «нет»"></textarea>
+                </div>
                 <button type="submit" class="btn btn-primary btn-block">
                     <i class="ph-bold ph-paper-plane-tilt"></i>
                     Отправить заявку
@@ -357,7 +411,7 @@
             </form>
         </section>
 
-        <!-- ===== PRODUCTS ===== -->
+        <!-- ============================= PRODUCTS ============================= -->
         <section class="section" id="section-products">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -365,21 +419,23 @@
                 </button>
                 <h2>Товары</h2>
             </div>
-            <img src="/assets/banner_components.png" alt="" class="section-banner">
+            <img src="assets/banner_components.png" alt="" class="section-banner">
             <div class="info-card">
                 <p>Новые комплектующие от проверенных поставщиков: DNS, Citilink, Regard, Яндекс.Маркет. Б/У компоненты с гарантией от нас.</p>
-                <a href="#" class="btn btn-primary btn-block" data-manager-link target="_blank">
-                    <i class="ph-bold ph-chat-circle-dots"></i>
-                    Написать менеджеру
-                </a>
-                <a href="#" class="btn btn-ghost btn-block" data-taplink target="_blank">
-                    <i class="ph-bold ph-link"></i>
-                    Taplink
-                </a>
+                <div style="display:flex;flex-direction:column;gap:8px;margin-top:16px;">
+                    <a href="#" class="btn btn-primary btn-block" data-manager-link target="_blank">
+                        <i class="ph-bold ph-chat-circle-dots"></i>
+                        Написать менеджеру
+                    </a>
+                    <a href="#" class="btn btn-ghost btn-block" data-taplink target="_blank">
+                        <i class="ph-bold ph-link"></i>
+                        Taplink
+                    </a>
+                </div>
             </div>
         </section>
 
-        <!-- ===== DELIVERY ===== -->
+        <!-- ============================= DELIVERY ============================= -->
         <section class="section" id="section-delivery">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -387,18 +443,19 @@
                 </button>
                 <h2>Оплата и доставка</h2>
             </div>
-            <img src="/assets/banner_delivery.png" alt="" class="section-banner">
+            <img src="assets/banner_delivery.png" alt="" class="section-banner">
 
             <div class="info-card">
                 <h3>Способы оплаты</h3>
                 <ul class="clean-list">
-                    <li><i class="ph-bold ph-bank"></i> По расчетному счету</li>
+                    <li><i class="ph-bold ph-bank"></i> По расчётному счёту</li>
                     <li><i class="ph-bold ph-lightning"></i> Перевод по СБП</li>
                     <li><i class="ph-bold ph-qr-code"></i> Оплата по QR-коду</li>
                     <li><i class="ph-bold ph-calendar-blank"></i> Рассрочка до 36 месяцев</li>
                     <li><i class="ph-bold ph-split-vertical"></i> Оплата Долями (4 платежа) до 70 000 руб.</li>
                 </ul>
             </div>
+
             <div class="info-card">
                 <h3>Условия</h3>
                 <ul class="clean-list">
@@ -406,6 +463,7 @@
                     <li><i class="ph-bold ph-wrench"></i> Ремонт — оплата по результату</li>
                 </ul>
             </div>
+
             <div class="info-card">
                 <h3>Доставка</h3>
                 <ul class="clean-list">
@@ -414,13 +472,14 @@
                     <li><i class="ph-bold ph-package"></i> Бережная упаковка</li>
                 </ul>
             </div>
+
             <a href="#" class="btn btn-ghost btn-block" data-manager-link target="_blank">
                 <i class="ph-bold ph-chat-circle-dots"></i>
                 Оформить рассрочку
             </a>
         </section>
 
-        <!-- ===== ORDERS ===== -->
+        <!-- ============================= ORDERS ============================= -->
         <section class="section" id="section-orders">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -433,7 +492,7 @@
             </div>
         </section>
 
-        <!-- ===== CONTACTS ===== -->
+        <!-- ============================= CONTACTS ============================= -->
         <section class="section" id="section-contacts">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -449,6 +508,7 @@
                             <strong>Менеджер (бот)</strong>
                             <p>Написать через бота</p>
                         </div>
+                        <i class="ph-bold ph-arrow-square-out" style="margin-left:auto;color:var(--w30);"></i>
                     </a>
                     <a href="#" class="contact-row" data-taplink target="_blank">
                         <div class="contact-ava"><i class="ph-bold ph-link"></i></div>
@@ -456,29 +516,50 @@
                             <strong>Все контакты</strong>
                             <p>pulsegadgets.taplink.ws</p>
                         </div>
+                        <i class="ph-bold ph-arrow-square-out" style="margin-left:auto;color:var(--w30);"></i>
                     </a>
                 </div>
             </div>
             <div class="info-card">
-                <p>Также вы можете написать в чат бота для связи с поддержкой. Мы ответим в ближайшее время.</p>
+                <p style="color:var(--w40);font-size:0.85rem;line-height:1.6;">
+                    Также вы можете написать напрямую в чат бота для связи с поддержкой. Мы ответим в ближайшее время.
+                </p>
             </div>
         </section>
 
-        <!-- ===== ADMIN PANEL (только для админов) ===== -->
+        <!-- ============================= ADMIN PANEL ============================= -->
         <section class="section" id="section-admin">
             <div class="page-title">
                 <h2>Админ-панель</h2>
                 <p>Управление сервисом</p>
             </div>
 
-            <!-- Админ-табы -->
+            <!-- Admin Tabs -->
             <div class="admin-tabs" id="adminTabs">
-                <button class="admin-tab active" data-atab="a-dashboard">Обзор</button>
-                <button class="admin-tab" data-atab="a-services">Услуги</button>
-                <button class="admin-tab" data-atab="a-builds">Сборки</button>
-                <button class="admin-tab" data-atab="a-orders">Заказы</button>
-                <button class="admin-tab" data-atab="a-portfolio">Работы</button>
-                <button class="admin-tab" data-atab="a-users">Клиенты</button>
+                <button class="admin-tab active" data-atab="a-dashboard">
+                    <i class="ph-bold ph-chart-bar"></i>
+                    Обзор
+                </button>
+                <button class="admin-tab" data-atab="a-services">
+                    <i class="ph-bold ph-wrench"></i>
+                    Услуги
+                </button>
+                <button class="admin-tab" data-atab="a-builds">
+                    <i class="ph-bold ph-desktop-tower"></i>
+                    Сборки
+                </button>
+                <button class="admin-tab" data-atab="a-orders">
+                    <i class="ph-bold ph-clipboard-text"></i>
+                    Заказы
+                </button>
+                <button class="admin-tab" data-atab="a-portfolio">
+                    <i class="ph-bold ph-images"></i>
+                    Работы
+                </button>
+                <button class="admin-tab" data-atab="a-users">
+                    <i class="ph-bold ph-users"></i>
+                    Клиенты
+                </button>
             </div>
 
             <!-- Dashboard -->
@@ -505,7 +586,9 @@
                             <i class="ph-bold ph-plus"></i> Добавить
                         </button>
                     </div>
-                    <div id="adminServicesList"></div>
+                    <div id="adminServicesList">
+                        <div class="loading-spinner"></div>
+                    </div>
                 </div>
             </div>
 
@@ -518,7 +601,9 @@
                             <i class="ph-bold ph-plus"></i> Добавить
                         </button>
                     </div>
-                    <div id="adminBuildsList"></div>
+                    <div id="adminBuildsList">
+                        <div class="loading-spinner"></div>
+                    </div>
                 </div>
             </div>
 
@@ -531,7 +616,9 @@
                             <i class="ph-bold ph-arrow-clockwise"></i>
                         </button>
                     </div>
-                    <div id="adminOrdersList"></div>
+                    <div id="adminOrdersList">
+                        <div class="loading-spinner"></div>
+                    </div>
                 </div>
             </div>
 
@@ -544,7 +631,9 @@
                             <i class="ph-bold ph-arrow-clockwise"></i>
                         </button>
                     </div>
-                    <div id="adminPortfolioList"></div>
+                    <div id="adminPortfolioList">
+                        <div class="loading-spinner"></div>
+                    </div>
                 </div>
             </div>
 
@@ -557,28 +646,35 @@
                             <i class="ph-bold ph-arrow-clockwise"></i>
                         </button>
                     </div>
-                    <div id="adminUsersList"></div>
+                    <div id="adminUsersList">
+                        <div class="loading-spinner"></div>
+                    </div>
                 </div>
             </div>
+
         </section>
 
     </main>
 </div>
 
-<!-- MODAL -->
+<!-- ==================== MODAL ==================== -->
 <div class="modal-overlay hidden" id="modalOverlay">
     <div class="modal" id="modal">
         <div class="modal-head">
             <h3 id="modalTitle"></h3>
-            <button class="modal-x" id="modalClose"><i class="ph-bold ph-x"></i></button>
+            <button class="modal-x" id="modalClose">
+                <i class="ph-bold ph-x"></i>
+            </button>
         </div>
         <div class="modal-body" id="modalBody"></div>
     </div>
 </div>
 
-<!-- PORTFOLIO VIEWER -->
+<!-- ==================== PORTFOLIO VIEWER ==================== -->
 <div class="viewer hidden" id="imageViewer">
-    <button class="viewer-x" id="viewerClose"><i class="ph-bold ph-x"></i></button>
+    <button class="viewer-x" id="viewerClose">
+        <i class="ph-bold ph-x"></i>
+    </button>
     <div class="viewer-img-wrap">
         <img id="viewerImage" src="" alt="">
     </div>
@@ -591,6 +687,8 @@
     </div>
 </div>
 
-<script src="/js/app.js"></script>
+<!-- ==================== SCRIPTS ==================== -->
+<script src="js/app.js"></script>
+
 </body>
 </html>
