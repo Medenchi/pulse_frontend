@@ -366,6 +366,17 @@
         return SUPABASE_URL + "/storage/v1/object/public/portfolio/" + filename;
     }
 
+    // ==================== STORAGE UPLOAD ====================
+    async function uploadToStorage(bucket, file, folder) {
+        folder = folder || "";
+        var ext      = file.name.split('.').pop();
+        var filename = (folder ? folder + "/" : "") + Date.now() + "_" + Math.random().toString(36).slice(2, 8) + "." + ext;
+        var result   = await db.storage.from(bucket).upload(filename, file, { upsert: false });
+        if (result.error) throw result.error;
+        var pub = db.storage.from(bucket).getPublicUrl(filename);
+        return pub.data.publicUrl;
+    }
+
     // ==================== ORDERS ====================
     async function submitOrder(type, pay, details, price, contact, delivery) {
         if (!state.userId) { toast("Откройте через Telegram", "error"); return null; }
@@ -732,7 +743,11 @@
                 var statusClass = b.status === "available" ? "rb-status-available" : b.status === "reserved" ? "rb-status-reserved" : "rb-status-sold";
                 html +=
                     '<div class="rb-card" data-rbi="' + i + '">' +
-                    (b.image_url ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>' : '') +
+                    // ✅ ОБНОВЛЕНО: фото с плейсхолдером
+                    (b.image_url
+                        ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>'
+                        : '<div class="rb-img-placeholder"><i class="ph-light ph-image-broken"></i><span>Фото скоро появится — мы работаем над этим 📸</span></div>'
+                    ) +
                     '<div class="rb-body">' +
                     '<div class="rb-top">' +
                     '<span class="rb-name">' + esc(b.name) + '</span>' +
@@ -1279,17 +1294,32 @@
         el.innerHTML = html;
     }
 
+    // ✅ ОБНОВЛЕНО: форма с загрузкой файла вместо URL
     function _readyFormHtml(b) {
         b = b || {};
-        return '<div class="form-group"><label>Название *</label><input id="ae_rb_name" value="' + esc(b.name || "") + '" placeholder="RTX 4070 + Ryzen 5 7600X"></div>' +
-            '<div class="form-group"><label>Комплектация</label><textarea id="ae_rb_specs" rows="5" placeholder="CPU: Intel i5-13600K\nGPU: RTX 4070\nRAM: 32GB DDR5\nSSD: 1TB NVMe\nCase: Lian Li O11">' + esc(b.specs || "") + '</textarea></div>' +
+        var hasImg = b.image_url || "";
+        return '<div class="form-group"><label>Фото сборки</label>' +
+            '<div class="upload-area" id="readyUploadArea">' +
+            '<input type="file" id="readyFileInput" accept="image/*">' +
+            '<i class="ph-bold ph-image"></i>' +
+            '<p>' + (hasImg ? 'Загрузить новое фото' : 'Нажмите или перетащите фото') + '</p>' +
+            '<span>JPG, PNG, WEBP до 10 МБ</span>' +
+            '</div>' +
+            (hasImg
+                ? '<div style="margin-top:8px;border-radius:var(--r);overflow:hidden;height:120px;"><img id="readyPreviewImg" src="' + esc(hasImg) + '" style="width:100%;height:100%;object-fit:cover;"></div>'
+                : '<div id="readyPreview" class="hidden" style="margin-top:8px;border-radius:var(--r);overflow:hidden;height:120px;"><img id="readyPreviewImg" style="width:100%;height:100%;object-fit:cover;"></div>'
+            ) +
+            '<div class="upload-progress hidden" id="readyProgress"><div class="upload-progress-bar" id="readyProgressBar"></div></div>' +
+            '</div>' +
+            '<input type="hidden" id="ae_rb_img_existing" value="' + esc(hasImg) + '">' +
+            '<div class="form-group"><label>Название *</label><input id="ae_rb_name" value="' + esc(b.name || "") + '" placeholder="RTX 4070 + Ryzen 5 7600X"></div>' +
+            '<div class="form-group"><label>Комплектация</label><textarea id="ae_rb_specs" rows="5" placeholder="CPU: Intel i5-13600K\nGPU: RTX 4070\nRAM: 32GB DDR5\nSSD: 1TB NVMe">' + esc(b.specs || "") + '</textarea></div>' +
             '<div class="form-group"><label>Описание</label><textarea id="ae_rb_desc" rows="2">' + esc(b.description || "") + '</textarea></div>' +
             '<div class="form-group"><label>Цена (руб.)</label><input type="number" id="ae_rb_price" value="' + (b.price || "") + '" placeholder="150000"></div>' +
-            '<div class="form-group"><label>Ссылка на фото (URL)</label><input id="ae_rb_img" value="' + esc(b.image_url || "") + '" placeholder="https://..."></div>' +
             '<div class="form-group"><label>Статус</label><select id="ae_rb_status">' +
-            '<option value="available"' + (b.status === "available" ? " selected" : "") + '>В наличии</option>' +
-            '<option value="reserved"'  + (b.status === "reserved"  ? " selected" : "") + '>Забронировано</option>' +
-            '<option value="sold"'      + (b.status === "sold"      ? " selected" : "") + '>Продано</option>' +
+            '<option value="available"' + (b.status === "available" ? " selected" : "") + '>✅ В наличии</option>' +
+            '<option value="reserved"'  + (b.status === "reserved"  ? " selected" : "") + '>🔒 Забронировано</option>' +
+            '<option value="sold"'      + (b.status === "sold"      ? " selected" : "") + '>❌ Продано</option>' +
             '</select></div>';
     }
 
@@ -1301,6 +1331,23 @@
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(' + id + ')">Сохранить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
+        // Вешаем превью после рендера
+        setTimeout(function() {
+            var input   = $("#readyFileInput");
+            var preview = $("#readyPreview");
+            var prevImg = $("#readyPreviewImg");
+            if (!input) return;
+            input.addEventListener("change", function() {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    prevImg.src = e.target.result;
+                    if (preview) preview.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            });
+        }, 60);
     };
 
     window._adminNewReady = function() {
@@ -1309,19 +1356,59 @@
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(0)">Добавить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
+        // Вешаем превью после рендера
+        setTimeout(function() {
+            var input   = $("#readyFileInput");
+            var preview = $("#readyPreview");
+            var prevImg = $("#readyPreviewImg");
+            if (!input) return;
+            input.addEventListener("change", function() {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    prevImg.src = e.target.result;
+                    if (preview) preview.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            });
+        }, 60);
     };
 
+    // ✅ ОБНОВЛЕНО: сохранение с загрузкой в Storage
     window._adminSaveReady = async function(id) {
-        var priceVal = parseInt(($("#ae_rb_price") || {}).value) || 0;
-        var payload  = {
+        var input       = $("#readyFileInput");
+        var file        = input && input.files && input.files[0];
+        var existingUrl = ($("#ae_rb_img_existing") || {}).value || "";
+        var priceVal    = parseInt(($("#ae_rb_price") || {}).value) || 0;
+
+        var payload = {
             name:        ($("#ae_rb_name")   || {}).value || "",
             specs:       ($("#ae_rb_specs")  || {}).value || "",
             description: ($("#ae_rb_desc")   || {}).value || "",
             price:       priceVal || null,
-            image_url:   ($("#ae_rb_img")    || {}).value || "",
+            image_url:   existingUrl,
             status:      ($("#ae_rb_status") || {}).value || "available"
         };
+
         if (!payload.name) { toast("Введите название", "error"); return; }
+
+        if (file) {
+            if (file.size > 10 * 1024 * 1024) { toast("Файл слишком большой (макс. 10 МБ)", "error"); return; }
+            var progress    = $("#readyProgress");
+            var progressBar = $("#readyProgressBar");
+            if (progress) progress.classList.remove("hidden");
+            if (progressBar) progressBar.style.width = "30%";
+            try {
+                payload.image_url = await uploadToStorage("portfolio", file, "ready");
+                if (progressBar) progressBar.style.width = "80%";
+            } catch(e) {
+                toast("Ошибка загрузки фото", "error");
+                if (progress) progress.classList.add("hidden");
+                return;
+            }
+        }
+
         try {
             if (id) { await sbUpdate("ready_builds", payload, "id", id); toast("Обновлено"); }
             else {
@@ -1443,9 +1530,21 @@
         el.innerHTML = html;
     }
 
+    // ✅ ОБНОВЛЕНО: загрузка через Storage
     window._adminAddPortfolio = function() {
         openModal("Добавить в портфолио",
-            '<div class="form-group"><label>Ссылка на изображение *</label><input id="ae_p_url" placeholder="https://..."></div>' +
+            '<div class="form-group"><label>Фото *</label>' +
+            '<div class="upload-area" id="portfolioUploadArea">' +
+            '<input type="file" id="portfolioFileInput" accept="image/*">' +
+            '<i class="ph-bold ph-image"></i>' +
+            '<p>Нажмите или перетащите фото</p>' +
+            '<span>JPG, PNG, WEBP до 5 МБ</span>' +
+            '</div>' +
+            '<div id="portfolioPreview" class="hidden" style="margin-top:8px;border-radius:var(--r);overflow:hidden;aspect-ratio:16/9;background:var(--surface3);">' +
+            '<img id="portfolioPreviewImg" style="width:100%;height:100%;object-fit:cover;">' +
+            '</div>' +
+            '<div class="upload-progress hidden" id="portfolioProgress"><div class="upload-progress-bar" id="portfolioProgressBar"></div></div>' +
+            '</div>' +
             '<div class="form-group"><label>Название</label><input id="ae_p_title" placeholder="Игровая сборка RTX 4080"></div>' +
             '<div class="form-group"><label>Описание</label><textarea id="ae_p_desc" rows="2"></textarea></div>' +
             '<div class="form-group"><label>Категория</label><select id="ae_p_cat">' +
@@ -1455,33 +1554,65 @@
             '<option value="custom">Кастом</option>' +
             '<option value="general">Другое</option>' +
             '</select></div>' +
-            '<div style="display:flex;gap:8px;margin-top:16px;">' +
-            '<button class="btn btn-primary" onclick="window._adminSavePortfolio()">Добавить</button>' +
-            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>'
+            '<div style="display:flex;gap:8px;margin-top:6px;">' +
+            '<button class="btn btn-primary" onclick="window._adminSavePortfolio()"><i class="ph-bold ph-upload-simple"></i> Загрузить</button>' +
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
         );
+        setTimeout(function() {
+            var input   = $("#portfolioFileInput");
+            var preview = $("#portfolioPreview");
+            var prevImg = $("#portfolioPreviewImg");
+            if (!input) return;
+            input.addEventListener("change", function() {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    prevImg.src = e.target.result;
+                    preview.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            });
+        }, 60);
     };
 
+    // ✅ ОБНОВЛЕНО: сохранение портфолио через Storage
     window._adminSavePortfolio = async function() {
-        var url      = ($("#ae_p_url")   || {}).value.trim();
+        var input    = $("#portfolioFileInput");
         var title    = ($("#ae_p_title") || {}).value.trim();
         var desc     = ($("#ae_p_desc")  || {}).value.trim();
         var category = ($("#ae_p_cat")   || {}).value || "general";
-        if (!url) { toast("Введите ссылку на фото", "error"); return; }
+        var file     = input && input.files && input.files[0];
+        if (!file) { toast("Выберите фото", "error"); return; }
+        if (file.size > 5 * 1024 * 1024) { toast("Файл слишком большой (макс. 5 МБ)", "error"); return; }
+
+        var progress    = $("#portfolioProgress");
+        var progressBar = $("#portfolioProgressBar");
+        if (progress) progress.classList.remove("hidden");
+        if (progressBar) progressBar.style.width = "30%";
+
         try {
+            var publicUrl = await uploadToStorage("portfolio", file);
+            if (progressBar) progressBar.style.width = "70%";
             await sbInsert("portfolio", {
-                filename:    url,
+                filename:    publicUrl,
                 title:       title,
                 description: desc,
                 category:    category,
                 added_by:    state.userId,
                 created_at:  new Date().toISOString()
             });
-            toast("Добавлено в портфолио");
-            closeModal();
+            if (progressBar) progressBar.style.width = "100%";
+            toast("Фото загружено!", "success");
+            setTimeout(function() { closeModal(); }, 400);
             state.portfolio        = [];
             state.loaded.portfolio = false;
             adminLoadPortfolio();
-        } catch(e) { toast("Ошибка добавления", "error"); }
+        } catch(e) {
+            console.error(e);
+            toast("Ошибка загрузки фото", "error");
+            if (progress) progress.classList.add("hidden");
+        }
     };
 
     window._adminDeletePortfolio = async function(id) {
