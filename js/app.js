@@ -4,7 +4,7 @@
     // ==================== SUPABASE INIT ====================
 
     const SUPABASE_URL = "https://qsvztyhszwauwkxfmirs.supabase.co";
-    const SUPABASE_KEY = "ВСТАВЬ_СВОЙ_КЛЮЧ_СЮДА";
+    const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzdnp0eWhzendhdXdreGZtaXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzY0NDQsImV4cCI6MjA5MTQxMjQ0NH0.JSGPwP0WWw02C4UWhLGcjlLH_1zoHgmv07hLGc045Ss";
     const { createClient } = window.supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
