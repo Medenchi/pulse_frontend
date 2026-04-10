@@ -6,21 +6,14 @@
     <meta name="theme-color" content="#050507">
     <title>Pulse Computers</title>
 
-    <!-- Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&family=JetBrains+Mono:wght@500;700&display=swap" rel="stylesheet">
 
-    <!-- Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
-
-    <!-- Telegram WebApp SDK -->
     <script src="https://telegram.org/js/telegram-web-app.js"></script>
-
-    <!-- Supabase SDK — ОБЯЗАТЕЛЬНО ДО app.js -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
-    <!-- Styles -->
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
@@ -79,7 +72,6 @@
         <!-- ============================= HOME ============================= -->
         <section class="section active" id="section-home">
 
-            <!-- Hero Banner -->
             <div class="hero-banner">
                 <img src="assets/hero_welcome.png" alt="" class="hero-img">
                 <div class="hero-overlay">
@@ -92,7 +84,6 @@
                 </div>
             </div>
 
-            <!-- Quick Nav Grid -->
             <div class="home-grid">
                 <div class="home-card" data-navigate="services">
                     <i class="ph-bold ph-wrench"></i>
@@ -102,6 +93,10 @@
                     <i class="ph-bold ph-desktop-tower"></i>
                     <span>Сборки</span>
                 </div>
+                <div class="home-card" data-navigate="ready-builds">
+                    <i class="ph-bold ph-package"></i>
+                    <span>В наличии</span>
+                </div>
                 <div class="home-card" data-navigate="portfolio">
                     <i class="ph-bold ph-images"></i>
                     <span>Портфолио</span>
@@ -110,24 +105,18 @@
                     <i class="ph-bold ph-hand-coins"></i>
                     <span>Скупка</span>
                 </div>
-                <div class="home-card" data-navigate="products">
-                    <i class="ph-bold ph-shopping-bag"></i>
-                    <span>Товары</span>
-                </div>
                 <div class="home-card" data-navigate="contacts">
                     <i class="ph-bold ph-chat-circle-dots"></i>
                     <span>Контакты</span>
                 </div>
             </div>
 
-            <!-- Promo Banners -->
             <div class="home-banners">
-                <img src="assets/banner_warranty.png"   alt="Гарантия"        class="promo-banner" data-navigate="delivery">
-                <img src="assets/banner_components.png" alt="Комплектующие"   class="promo-banner" data-navigate="products">
-                <img src="assets/banner_testing.png"    alt="Тестирование"    class="promo-banner" data-navigate="services">
+                <img src="assets/banner_warranty.png"   alt="Гарантия"      class="promo-banner" data-navigate="delivery">
+                <img src="assets/banner_components.png" alt="Комплектующие" class="promo-banner" data-navigate="products">
+                <img src="assets/banner_testing.png"    alt="Тестирование"  class="promo-banner" data-navigate="services">
             </div>
 
-            <!-- CTA -->
             <a href="#" class="home-contact-btn" data-manager-link target="_blank">
                 <i class="ph-bold ph-chat-circle-dots"></i>
                 Написать менеджеру
@@ -161,25 +150,52 @@
             </form>
         </section>
 
-        <!-- ============================= BUILDS ============================= -->
+        <!-- ============================= BUILDS (конфигуратор) ============================= -->
         <section class="section" id="section-builds">
             <div class="page-title">
                 <h2>Сборки ПК</h2>
-                <p>Готовые конфигурации и индивидуальные проекты</p>
+                <p>Конфигуратор и индивидуальные проекты</p>
             </div>
-            <img src="assets/banner_builds.png" alt="" class="section-banner">
-            <div class="builds-list" id="buildsList">
-                <div class="loading-spinner"></div>
-            </div>
-            <div class="divider"></div>
-            <div class="cta-card">
-                <h3>Индивидуальная сборка</h3>
-                <p>Расскажите о задачах и бюджете — мы подберём идеальную конфигурацию</p>
-                <button class="btn btn-primary btn-block" id="openCustomBuildForm">
-                    <i class="ph-bold ph-pencil-simple-line"></i>
-                    Заполнить заявку
+
+            <!-- Переключатель -->
+            <div class="builds-switcher">
+                <button class="builds-switch-btn active" id="switchConfigurator">
+                    <i class="ph-bold ph-sliders"></i>
+                    Конфигуратор
+                </button>
+                <button class="builds-switch-btn" id="switchReady">
+                    <i class="ph-bold ph-package"></i>
+                    Готовые сборки
                 </button>
             </div>
+
+            <!-- Конфигуратор -->
+            <div id="configuratorSection">
+                <img src="assets/banner_builds.png" alt="" class="section-banner">
+                <div class="builds-list" id="buildsList">
+                    <div class="loading-spinner"></div>
+                </div>
+                <div class="divider"></div>
+                <div class="cta-card">
+                    <h3>Индивидуальная сборка</h3>
+                    <p>Расскажите о задачах и бюджете — мы подберём идеальную конфигурацию</p>
+                    <button class="btn btn-primary btn-block" id="openCustomBuildForm">
+                        <i class="ph-bold ph-pencil-simple-line"></i>
+                        Заполнить заявку
+                    </button>
+                </div>
+            </div>
+
+            <!-- Готовые сборки -->
+            <div id="readySection" class="hidden">
+                <div class="ready-builds-header">
+                    <p class="ready-builds-sub">Собранные и протестированные ПК — готовы к отправке</p>
+                </div>
+                <div class="ready-builds-list" id="readyBuildsList">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
         </section>
 
         <!-- ============================= BUILD FORM ============================= -->
@@ -202,12 +218,10 @@
                     <label>Контакт для связи <span class="req">*</span></label>
                     <input type="text" id="buildContact" placeholder="Телефон или @telegram" required>
                 </div>
-
                 <div class="form-group">
                     <label>Бюджет (руб.) <span class="req">*</span></label>
                     <input type="number" id="buildBudget" placeholder="100 000" min="5000" step="1000" required>
                 </div>
-
                 <div class="form-group">
                     <label>Основные задачи <span class="req">*</span></label>
                     <select id="buildTasks" required>
@@ -222,12 +236,10 @@
                         <option value="Серверные задачи">Сервер</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Цвет корпуса</label>
                     <input type="text" id="buildColor" placeholder="Чёрный, белый, красный...">
                 </div>
-
                 <div class="form-group">
                     <label>Подсветка</label>
                     <select id="buildRGB">
@@ -236,7 +248,6 @@
                         <option value="Одноцветная">Одноцветная</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Кастомизация</label>
                     <select id="buildVinyl">
@@ -245,7 +256,6 @@
                         <option value="Фулл кастом">Индивидуальный проект</option>
                     </select>
                 </div>
-
                 <div class="form-group">
                     <label>Доставка <span class="req">*</span></label>
                     <select id="buildDeliveryType" required>
@@ -254,7 +264,6 @@
                     </select>
                 </div>
 
-                <!-- CDEK Fields -->
                 <div id="cdekFields" class="cdek-block hidden">
                     <div class="form-group">
                         <label>ФИО получателя</label>
@@ -281,7 +290,6 @@
                 </button>
             </form>
 
-            <!-- Installment Card -->
             <div class="installment-card">
                 <i class="ph-bold ph-percent"></i>
                 <div class="installment-text">
@@ -310,12 +318,20 @@
             </div>
         </section>
 
-        <!-- ============================= MORE / MENU ============================= -->
+        <!-- ============================= MORE ============================= -->
         <section class="section" id="section-more">
             <div class="page-title">
                 <h2>Меню</h2>
             </div>
             <div class="menu-list">
+                <button class="menu-item" data-navigate="ready-builds">
+                    <div class="menu-icon"><i class="ph-bold ph-package"></i></div>
+                    <div class="menu-text">
+                        <h3>Готовые сборки</h3>
+                        <p>ПК в наличии — готовы к отправке</p>
+                    </div>
+                    <i class="ph-bold ph-caret-right menu-arrow"></i>
+                </button>
                 <button class="menu-item" data-navigate="buyout">
                     <div class="menu-icon"><i class="ph-bold ph-hand-coins"></i></div>
                     <div class="menu-text">
@@ -363,7 +379,21 @@
             </a>
         </section>
 
-        <!-- ============================= BUYOUT FORM ============================= -->
+        <!-- ============================= READY BUILDS (отдельная секция) ============================= -->
+        <section class="section" id="section-ready-builds">
+            <div class="sub-header">
+                <button class="back-btn" data-navigate="more">
+                    <i class="ph-bold ph-arrow-left"></i>
+                </button>
+                <h2>Готовые сборки</h2>
+            </div>
+            <p class="form-subtitle">Собранные и протестированные ПК — готовы к отправке</p>
+            <div class="ready-builds-list" id="readyBuildsListFull">
+                <div class="loading-spinner"></div>
+            </div>
+        </section>
+
+        <!-- ============================= BUYOUT ============================= -->
         <section class="section" id="section-buyout">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -455,7 +485,6 @@
                     <li><i class="ph-bold ph-split-vertical"></i> Оплата Долями (4 платежа) до 70 000 руб.</li>
                 </ul>
             </div>
-
             <div class="info-card">
                 <h3>Условия</h3>
                 <ul class="clean-list">
@@ -463,7 +492,6 @@
                     <li><i class="ph-bold ph-wrench"></i> Ремонт — оплата по результату</li>
                 </ul>
             </div>
-
             <div class="info-card">
                 <h3>Доставка</h3>
                 <ul class="clean-list">
@@ -472,7 +500,6 @@
                     <li><i class="ph-bold ph-package"></i> Бережная упаковка</li>
                 </ul>
             </div>
-
             <a href="#" class="btn btn-ghost btn-block" data-manager-link target="_blank">
                 <i class="ph-bold ph-chat-circle-dots"></i>
                 Оформить рассрочку
@@ -522,43 +549,39 @@
             </div>
             <div class="info-card">
                 <p style="color:var(--w40);font-size:0.85rem;line-height:1.6;">
-                    Также вы можете написать напрямую в чат бота для связи с поддержкой. Мы ответим в ближайшее время.
+                    Напишите в чат бота для связи с поддержкой. Отвечаем в ближайшее время.
                 </p>
             </div>
         </section>
 
-        <!-- ============================= ADMIN PANEL ============================= -->
+        <!-- ============================= ADMIN ============================= -->
         <section class="section" id="section-admin">
             <div class="page-title">
                 <h2>Админ-панель</h2>
                 <p>Управление сервисом</p>
             </div>
 
-            <!-- Admin Tabs -->
             <div class="admin-tabs" id="adminTabs">
                 <button class="admin-tab active" data-atab="a-dashboard">
-                    <i class="ph-bold ph-chart-bar"></i>
-                    Обзор
+                    <i class="ph-bold ph-chart-bar"></i> Обзор
                 </button>
                 <button class="admin-tab" data-atab="a-services">
-                    <i class="ph-bold ph-wrench"></i>
-                    Услуги
+                    <i class="ph-bold ph-wrench"></i> Услуги
                 </button>
                 <button class="admin-tab" data-atab="a-builds">
-                    <i class="ph-bold ph-desktop-tower"></i>
-                    Сборки
+                    <i class="ph-bold ph-sliders"></i> Конфиг
+                </button>
+                <button class="admin-tab" data-atab="a-ready">
+                    <i class="ph-bold ph-package"></i> Готовые
                 </button>
                 <button class="admin-tab" data-atab="a-orders">
-                    <i class="ph-bold ph-clipboard-text"></i>
-                    Заказы
+                    <i class="ph-bold ph-clipboard-text"></i> Заказы
                 </button>
                 <button class="admin-tab" data-atab="a-portfolio">
-                    <i class="ph-bold ph-images"></i>
-                    Работы
+                    <i class="ph-bold ph-images"></i> Работы
                 </button>
                 <button class="admin-tab" data-atab="a-users">
-                    <i class="ph-bold ph-users"></i>
-                    Клиенты
+                    <i class="ph-bold ph-users"></i> Клиенты
                 </button>
             </div>
 
@@ -592,16 +615,36 @@
                 </div>
             </div>
 
-            <!-- Builds -->
+            <!-- Builds config -->
             <div class="admin-panel" id="a-builds">
                 <div class="admin-card">
                     <div class="admin-card-head">
-                        <h3>Сборки</h3>
+                        <h3>Конфигурации сборок</h3>
                         <button class="btn btn-primary btn-sm" id="adminAddBuild">
                             <i class="ph-bold ph-plus"></i> Добавить
                         </button>
                     </div>
                     <div id="adminBuildsList">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Ready builds -->
+            <div class="admin-panel" id="a-ready">
+                <div class="admin-card">
+                    <div class="admin-card-head">
+                        <h3>Готовые сборки</h3>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-ghost btn-sm" id="adminRefreshReady">
+                                <i class="ph-bold ph-arrow-clockwise"></i>
+                            </button>
+                            <button class="btn btn-primary btn-sm" id="adminAddReady">
+                                <i class="ph-bold ph-plus"></i> Добавить
+                            </button>
+                        </div>
+                    </div>
+                    <div id="adminReadyList">
                         <div class="loading-spinner"></div>
                     </div>
                 </div>
@@ -627,9 +670,14 @@
                 <div class="admin-card">
                     <div class="admin-card-head">
                         <h3>Портфолио</h3>
-                        <button class="btn btn-ghost btn-sm" id="adminRefreshPortfolio">
-                            <i class="ph-bold ph-arrow-clockwise"></i>
-                        </button>
+                        <div style="display:flex;gap:6px;">
+                            <button class="btn btn-ghost btn-sm" id="adminRefreshPortfolio">
+                                <i class="ph-bold ph-arrow-clockwise"></i>
+                            </button>
+                            <button class="btn btn-primary btn-sm" id="adminAddPortfolio">
+                                <i class="ph-bold ph-plus"></i> Добавить
+                            </button>
+                        </div>
                     </div>
                     <div id="adminPortfolioList">
                         <div class="loading-spinner"></div>
@@ -670,7 +718,7 @@
     </div>
 </div>
 
-<!-- ==================== PORTFOLIO VIEWER ==================== -->
+<!-- ==================== VIEWER ==================== -->
 <div class="viewer hidden" id="imageViewer">
     <button class="viewer-x" id="viewerClose">
         <i class="ph-bold ph-x"></i>
@@ -687,8 +735,6 @@
     </div>
 </div>
 
-<!-- ==================== SCRIPTS ==================== -->
 <script src="js/app.js"></script>
-
 </body>
 </html>
