@@ -17,7 +17,7 @@
         try { tg.setBackgroundColor("#050507"); } catch(e) {}
     }
 
-    // ==================== ADMIN IDS ====================
+    // ==================== ADMINS ====================
     var ADMIN_IDS = [926176803, 7994155248];
 
     // ==================== STATE ====================
@@ -35,37 +35,37 @@
         fullName: "",
         isAdmin: false,
         loaded: {
-            services: false,
-            builds: false,
-            readyBuilds: false,
-            portfolio: false
+            services:     false,
+            builds:       false,
+            readyBuilds:  false,
+            portfolio:    false
         },
         config: {
-            bot_username: "PulseComputersShop_bot",
-            manager_deeplink: "https://t.me/PulseComputersShop_bot?start=manager",
+            bot_username:        "PulseComputersShop_bot",
+            manager_deeplink:    "https://t.me/PulseComputersShop_bot?start=manager",
             admin_personal_link: "https://t.me/Pulse_Gadgets1",
-            taplink_url: "https://pulsegadgets.taplink.ws"
+            taplink_url:         "https://pulsegadgets.taplink.ws"
         },
         admin: {
-            currentTab: "a-dashboard",
-            services: [],
-            builds: [],
+            currentTab:  "a-dashboard",
+            services:    [],
+            builds:      [],
             readyBuilds: [],
-            orders: [],
-            portfolio: [],
-            users: []
+            orders:      [],
+            portfolio:   [],
+            users:       []
         }
     };
 
-    // Получаем данные пользователя из Telegram
+    // Данные из Telegram
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
-        var tgUser = tg.initDataUnsafe.user;
+        var tgUser     = tg.initDataUnsafe.user;
         state.userId   = tgUser.id || 0;
         state.username = tgUser.username || "";
         state.fullName = (tgUser.first_name || "") + (tgUser.last_name ? " " + tgUser.last_name : "");
     }
 
-    // Проверяем админа
+    // Проверка админа
     if (state.userId && ADMIN_IDS.indexOf(Number(state.userId)) !== -1) {
         state.isAdmin = true;
     }
@@ -254,7 +254,7 @@
                 var s = $("#splashScreen");
                 if (!s) return;
                 s.style.transition = "opacity 0.4s ease";
-                s.style.opacity = "0";
+                s.style.opacity    = "0";
                 setTimeout(function() {
                     s.classList.add("hidden");
                     var a = $("#app"); if (a) a.classList.remove("hidden");
@@ -281,10 +281,10 @@
         state.current = id;
         window.scrollTo({ top: 0, behavior: "instant" });
 
-        if (id === "services"     && !state.loaded.services)     loadServices();
-        if (id === "builds"       && !state.loaded.builds)       loadBuilds();
-        if (id === "ready-builds" && !state.loaded.readyBuilds)  loadReadyBuilds();
-        if (id === "portfolio"    && !state.loaded.portfolio)    loadPortfolio();
+        if (id === "services"     && !state.loaded.services)    loadServices();
+        if (id === "builds"       && !state.loaded.builds)      loadBuilds();
+        if (id === "ready-builds" && !state.loaded.readyBuilds) loadReadyBuilds();
+        if (id === "portfolio"    && !state.loaded.portfolio)   loadPortfolio();
         if (id === "orders")  loadOrders();
         if (id === "admin")   adminLoadTab(state.admin.currentTab);
 
@@ -301,7 +301,7 @@
         var map = {
             "service-form":  "services",
             "build-form":    "builds",
-            "ready-builds":  "builds",
+            "ready-builds":  "more",
             "buyout":        "more",
             "products":      "more",
             "delivery":      "more",
@@ -406,7 +406,7 @@
     }
 
     function renderServices() {
-        var el = $("#servicesList");
+        var el   = $("#servicesList");
         var list = state.services;
         if (!list.length) { setEmpty(el, "ph-light ph-wrench", "Услуги скоро появятся"); return; }
         var html = "";
@@ -420,7 +420,8 @@
                 '<div class="svc-footer">' +
                 '<span class="svc-price">' + esc(s.price_text) + '</span>' +
                 '<span class="svc-pay-badge ' + (s.payment === "prepay" ? "prepay" : "postpay") + '">' +
-                (s.payment === "prepay" ? "Предоплата" : "По факту") + '</span>' +
+                (s.payment === "prepay" ? "Предоплата" : "По факту") +
+                '</span>' +
                 '</div></div>' +
                 '<i class="ph-bold ph-caret-right svc-arrow"></i>' +
                 '</div>';
@@ -437,7 +438,7 @@
     // ==================== SERVICE FORM ====================
     function openServiceForm(service) {
         var container = $("#serviceFormContainer");
-        var titleEl = $("#serviceFormServiceName");
+        var titleEl   = $("#serviceFormServiceName");
         if (titleEl) titleEl.textContent = service.title + " — " + service.price_text;
 
         var fields = [];
@@ -483,9 +484,9 @@
             var price   = parseFloat(($("#svcFormServicePrice") || {}).value) || 0;
             var payment = ($("#svcFormPayment") || {}).value || "postpay";
             var fieldEls = form.querySelectorAll(".svc-field");
-            var details = "Услуга: " + title + "\n";
-            var contact = "";
-            var allOk   = true;
+            var details  = "Услуга: " + title + "\n";
+            var contact  = "";
+            var allOk    = true;
 
             fieldEls.forEach(function(fel) {
                 var fid = fel.getAttribute("data-field-id");
@@ -494,9 +495,9 @@
                 else fel.classList.remove("input-error");
                 if (fid === "contact") contact = val;
                 if (val) {
-                    var lbl = fid;
+                    var lbl  = fid;
                     var prev = fel.previousElementSibling;
-                    if (prev && prev.tagName === "LABEL") lbl = prev.textContent.replace("*","").trim();
+                    if (prev && prev.tagName === "LABEL") lbl = prev.textContent.replace("*", "").trim();
                     details += lbl + ": " + val + "\n";
                 }
             });
@@ -525,7 +526,7 @@
     }
 
     function renderBuilds() {
-        var el = $("#buildsList");
+        var el   = $("#buildsList");
         var list = state.builds;
         if (!list.length) { setEmpty(el, "ph-light ph-desktop-tower", "Сборки скоро появятся"); return; }
         var html = "";
@@ -534,9 +535,9 @@
                 '<div class="build-card" data-bi="' + i + '">' +
                 '<div class="build-top">' +
                 '<span class="build-name">' + esc(b.name) + '</span>' +
-                '<span class="build-tag">' + esc(b.tier) + '</span>' +
+                '<span class="build-tag">'  + esc(b.tier) + '</span>' +
                 '</div>' +
-                '<div class="build-desc">' + esc(b.description) + '</div>' +
+                '<div class="build-desc">'  + esc(b.description) + '</div>' +
                 '<div class="build-bottom">' +
                 '<span class="build-price">' + esc(b.price_text) + '</span>' +
                 '<button class="btn btn-primary btn-small bo-btn" data-bi="' + i + '">Заказать</button>' +
@@ -560,7 +561,7 @@
     }
 
     function openBuildDetail(build) {
-        var ml = state.config.manager_deeplink || "#";
+        var ml   = state.config.manager_deeplink || "#";
         var html =
             '<p style="color:var(--w40);font-size:0.84rem;margin-bottom:16px;line-height:1.55;">' + esc(build.description) + '</p>' +
             '<div style="text-align:center;padding:18px;background:var(--surface3);border-radius:var(--r);margin-bottom:16px;border:1px solid var(--border);">' +
@@ -607,21 +608,21 @@
     }
 
     function addCdekRequired() {
-        ["#buildDeliveryFio","#buildDeliveryAddress","#buildDeliveryPhone"].forEach(function(s) {
+        ["#buildDeliveryFio", "#buildDeliveryAddress", "#buildDeliveryPhone"].forEach(function(s) {
             var el = $(s); if (el) el.required = true;
         });
     }
     function removeCdekRequired() {
-        ["#buildDeliveryFio","#buildDeliveryAddress","#buildDeliveryPhone"].forEach(function(s) {
+        ["#buildDeliveryFio", "#buildDeliveryAddress", "#buildDeliveryPhone"].forEach(function(s) {
             var el = $(s); if (el) el.required = false;
         });
     }
 
     function initBuildForm() {
-        var form = $("#buildForm");
+        var form           = $("#buildForm");
         if (!form) return;
         var deliverySelect = $("#buildDeliveryType");
-        var cdek = $("#cdekFields");
+        var cdek           = $("#cdekFields");
         if (deliverySelect) {
             deliverySelect.addEventListener("change", function() {
                 if (this.value === "СДЭК") { cdek.classList.remove("hidden"); addCdekRequired(); }
@@ -630,30 +631,30 @@
         }
         form.addEventListener("submit", async function(e) {
             e.preventDefault();
-            var typeName     = ($("#buildTypeName") || {}).value || "";
-            var contact      = ($("#buildContact") || {}).value.trim();
+            var typeName     = ($("#buildTypeName")     || {}).value || "";
+            var contact      = ($("#buildContact")      || {}).value.trim();
             var budget       = parseInt(($("#buildBudget") || {}).value, 10) || 0;
-            var tasks        = ($("#buildTasks") || {}).value || "";
-            var color        = ($("#buildColor") || {}).value.trim();
-            var rgb          = ($("#buildRGB") || {}).value || "";
-            var vinyl        = ($("#buildVinyl") || {}).value || "";
+            var tasks        = ($("#buildTasks")        || {}).value || "";
+            var color        = ($("#buildColor")        || {}).value.trim();
+            var rgb          = ($("#buildRGB")          || {}).value || "";
+            var vinyl        = ($("#buildVinyl")        || {}).value || "";
             var deliveryType = ($("#buildDeliveryType") || {}).value || "";
-            var notes        = ($("#buildNotes") || {}).value.trim();
+            var notes        = ($("#buildNotes")        || {}).value.trim();
             if (!contact || !budget || !tasks) { toast("Заполните обязательные поля", "error"); return; }
             var details =
-                "Тип: "           + typeName +
-                "\nБюджет: "      + fmt(budget) + " руб." +
-                "\nЗадача: "      + tasks +
-                "\nЦвет: "        + (color || "не указан") +
-                "\nПодсветка: "   + rgb +
-                "\nКастом: "      + vinyl +
-                "\nДоставка: "    + deliveryType;
+                "Тип: "         + typeName +
+                "\nБюджет: "    + fmt(budget) + " руб." +
+                "\nЗадача: "    + tasks +
+                "\nЦвет: "      + (color || "не указан") +
+                "\nПодсветка: " + rgb +
+                "\nКастом: "    + vinyl +
+                "\nДоставка: "  + deliveryType;
             if (notes) details += "\nПожелания: " + notes;
             var deliveryInfo = "";
             if (deliveryType === "СДЭК") {
-                var fio   = ($("#buildDeliveryFio") || {}).value.trim();
+                var fio   = ($("#buildDeliveryFio")     || {}).value.trim();
                 var addr  = ($("#buildDeliveryAddress") || {}).value.trim();
-                var phone = ($("#buildDeliveryPhone") || {}).value.trim();
+                var phone = ($("#buildDeliveryPhone")   || {}).value.trim();
                 if (!fio || !addr || !phone) { toast("Заполните данные доставки", "error"); return; }
                 deliveryInfo = "СДЭК\nФИО: " + fio + "\nАдрес: " + addr + "\nТелефон: " + phone;
             }
@@ -661,84 +662,126 @@
             setBtnLoading(btn, true);
             var result = await submitOrder("build", "prepay", details, budget, contact, deliveryInfo);
             setBtnLoading(btn, false);
-            if (result) { form.reset(); if (cdek) cdek.classList.add("hidden"); removeCdekRequired(); nav("builds"); }
+            if (result) {
+                form.reset();
+                if (cdek) cdek.classList.add("hidden");
+                removeCdekRequired();
+                nav("builds");
+            }
         });
         var customBtn = $("#openCustomBuildForm");
         if (customBtn) customBtn.addEventListener("click", openCustomBuildForm);
     }
 
-    // ==================== ГОТОВЫЕ СБОРКИ ====================
+    // ==================== BUILDS SWITCHER ====================
+    function initBuildsSwitcher() {
+        var btnConf  = $("#switchConfigurator");
+        var btnReady = $("#switchReady");
+        var secConf  = $("#configuratorSection");
+        var secReady = $("#readySection");
+        if (!btnConf || !btnReady) return;
+
+        btnConf.addEventListener("click", function() {
+            btnConf.classList.add("active");
+            btnReady.classList.remove("active");
+            secConf.classList.remove("hidden");
+            secReady.classList.add("hidden");
+        });
+
+        btnReady.addEventListener("click", function() {
+            btnReady.classList.add("active");
+            btnConf.classList.remove("active");
+            secReady.classList.remove("hidden");
+            secConf.classList.add("hidden");
+            if (!state.loaded.readyBuilds) loadReadyBuilds();
+            else renderReadyBuilds();
+        });
+    }
+
+    // ==================== READY BUILDS ====================
     async function loadReadyBuilds() {
-        var el = $("#readyBuildsList");
-        setLoading(el);
+        var els = ["#readyBuildsList", "#readyBuildsListFull"];
+        els.forEach(function(s) { var e = $(s); if (e) setLoading(e); });
         try {
             state.readyBuilds = await sbSelect("ready_builds", { order: "created_at", asc: false });
             state.loaded.readyBuilds = true;
             renderReadyBuilds();
         } catch(e) {
             console.error(e);
-            setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить готовые сборки");
+            els.forEach(function(s) {
+                var el = $(s);
+                if (el) setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить готовые сборки");
+            });
         }
     }
 
     function renderReadyBuilds() {
-        var el = $("#readyBuildsList");
-        var list = state.readyBuilds;
-        if (!list.length) {
-            setEmpty(el, "ph-light ph-desktop-tower", "Готовых сборок пока нет", "Загляните позже");
-            return;
-        }
-        var html = "";
-        list.forEach(function(b, i) {
-            var statusLabel = b.status === "available" ? "В наличии" : b.status === "reserved" ? "Забронировано" : "Продано";
-            var statusClass = b.status === "available" ? "rb-status-available" : b.status === "reserved" ? "rb-status-reserved" : "rb-status-sold";
-            html +=
-                '<div class="rb-card" data-rbi="' + i + '">' +
-                (b.image_url ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>' : '') +
-                '<div class="rb-body">' +
-                '<div class="rb-top">' +
-                '<span class="rb-name">' + esc(b.name) + '</span>' +
-                '<span class="rb-badge ' + statusClass + '">' + statusLabel + '</span>' +
-                '</div>' +
-                (b.specs ? '<p class="rb-specs">' + esc(clamp(b.specs, 120)) + '</p>' : '') +
-                '<div class="rb-bottom">' +
-                '<span class="rb-price">' + (b.price ? fmt(b.price) + ' руб.' : 'По запросу') + '</span>' +
-                (b.status === "available" ?
-                    '<button class="btn btn-primary btn-small rb-order-btn" data-rbi="' + i + '">Купить</button>' :
-                    '<button class="btn btn-ghost btn-small" disabled>' + statusLabel + '</button>'
-                ) +
-                '</div></div></div>';
-        });
-        el.innerHTML = html;
-        $$(".rb-card").forEach(function(card) {
-            card.addEventListener("click", function(e) {
-                if (e.target.closest(".rb-order-btn")) return;
-                var idx = parseInt(this.getAttribute("data-rbi"), 10);
-                if (state.readyBuilds[idx]) openReadyBuildDetail(state.readyBuilds[idx]);
+        var list    = state.readyBuilds;
+        var targets = ["#readyBuildsList", "#readyBuildsListFull"];
+
+        targets.forEach(function(sel) {
+            var el = $(sel);
+            if (!el) return;
+            if (!list.length) {
+                setEmpty(el, "ph-light ph-package", "Готовых сборок пока нет", "Загляните позже");
+                return;
+            }
+            var html = "";
+            list.forEach(function(b, i) {
+                var statusLabel = b.status === "available" ? "В наличии" : b.status === "reserved" ? "Забронировано" : "Продано";
+                var statusClass = b.status === "available" ? "rb-status-available" : b.status === "reserved" ? "rb-status-reserved" : "rb-status-sold";
+                html +=
+                    '<div class="rb-card" data-rbi="' + i + '">' +
+                    (b.image_url ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>' : '') +
+                    '<div class="rb-body">' +
+                    '<div class="rb-top">' +
+                    '<span class="rb-name">' + esc(b.name) + '</span>' +
+                    '<span class="rb-badge ' + statusClass + '">' + statusLabel + '</span>' +
+                    '</div>' +
+                    (b.specs ? '<p class="rb-specs">' + esc(clamp(b.specs, 120)) + '</p>' : '') +
+                    '<div class="rb-bottom">' +
+                    '<span class="rb-price">' + (b.price ? fmt(b.price) + '\u00a0руб.' : 'По запросу') + '</span>' +
+                    (b.status === "available" ?
+                        '<button class="btn btn-primary btn-small rb-order-btn" data-rbi="' + i + '">Купить</button>' :
+                        '<button class="btn btn-ghost btn-small" disabled>' + statusLabel + '</button>'
+                    ) +
+                    '</div></div></div>';
             });
-        });
-        $$(".rb-order-btn").forEach(function(btn) {
-            btn.addEventListener("click", function(e) {
-                e.stopPropagation();
-                var idx = parseInt(this.getAttribute("data-rbi"), 10);
-                if (state.readyBuilds[idx]) openReadyBuildOrder(state.readyBuilds[idx]);
+            el.innerHTML = html;
+
+            el.querySelectorAll(".rb-card").forEach(function(card) {
+                card.addEventListener("click", function(e) {
+                    if (e.target.closest(".rb-order-btn")) return;
+                    var idx = parseInt(this.getAttribute("data-rbi"), 10);
+                    if (state.readyBuilds[idx]) openReadyBuildDetail(state.readyBuilds[idx]);
+                });
+            });
+            el.querySelectorAll(".rb-order-btn").forEach(function(btn) {
+                btn.addEventListener("click", function(e) {
+                    e.stopPropagation();
+                    var idx = parseInt(this.getAttribute("data-rbi"), 10);
+                    if (state.readyBuilds[idx]) openReadyBuildOrder(state.readyBuilds[idx]);
+                });
             });
         });
     }
 
     function openReadyBuildDetail(build) {
         var statusLabel = build.status === "available" ? "В наличии" : build.status === "reserved" ? "Забронировано" : "Продано";
+        var statusClass = build.status === "available" ? "rb-status-available" : "rb-status-sold";
         var html = "";
         if (build.image_url) {
             html += '<img src="' + esc(build.image_url) + '" style="width:100%;border-radius:var(--r);margin-bottom:14px;object-fit:cover;max-height:220px;" loading="lazy">';
         }
         html +=
-            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
-            '<span class="rb-badge ' + (build.status === "available" ? "rb-status-available" : "rb-status-sold") + '">' + statusLabel + '</span>' +
-            '<span style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:var(--w95);">' + (build.price ? fmt(build.price) + ' руб.' : 'По запросу') + '</span>' +
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:14px;">' +
+            '<span class="rb-badge ' + statusClass + '">' + statusLabel + '</span>' +
+            '<span style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:var(--w95);">' +
+            (build.price ? fmt(build.price) + '\u00a0руб.' : 'По запросу') + '</span>' +
             '</div>';
         if (build.specs) {
-            html += '<div style="background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);margin-bottom:14px;">' +
+            html +=
+                '<div style="background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);margin-bottom:14px;">' +
                 '<div style="font-size:0.7rem;color:var(--w40);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Комплектация</div>' +
                 '<div style="font-size:0.78rem;white-space:pre-wrap;color:var(--w60);line-height:1.6;">' + esc(build.specs) + '</div>' +
                 '</div>';
@@ -760,35 +803,38 @@
         var html =
             '<div style="background:var(--surface3);border-radius:var(--r);padding:12px;margin-bottom:16px;border:1px solid var(--border);">' +
             '<div style="font-size:0.78rem;font-weight:700;color:var(--w80);">' + esc(build.name) + '</div>' +
-            '<div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--accent-soft);margin-top:4px;">' + (build.price ? fmt(build.price) + ' руб.' : 'По запросу') + '</div>' +
+            '<div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--accent-soft);margin-top:4px;">' +
+            (build.price ? fmt(build.price) + '\u00a0руб.' : 'По запросу') + '</div>' +
             '</div>' +
             '<div class="form-group"><label>Контакт для связи <span class="req">*</span></label>' +
-            '<input type="text" id="rbContact" placeholder="Телефон или @telegram" class="rb-field"></div>' +
+            '<input type="text" id="rbContact" placeholder="Телефон или @telegram"></div>' +
             '<div class="form-group"><label>Доставка</label>' +
-            '<select id="rbDelivery" class="rb-field">' +
+            '<select id="rbDelivery">' +
             '<option value="Самовывоз">Самовывоз (Краснодар)</option>' +
             '<option value="СДЭК">СДЭК по России</option>' +
             '</select></div>' +
             '<div class="form-group"><label>Пожелания</label>' +
-            '<textarea id="rbNotes" rows="2" placeholder="Доп. вопросы..." class="rb-field"></textarea></div>' +
-            '<button class="btn btn-primary btn-block" id="rbSubmitBtn" style="margin-top:8px;"><i class="ph-bold ph-paper-plane-tilt"></i> Оформить заказ</button>';
+            '<textarea id="rbNotes" rows="2" placeholder="Доп. вопросы..."></textarea></div>' +
+            '<button class="btn btn-primary btn-block" id="rbSubmitBtn" style="margin-top:8px;">' +
+            '<i class="ph-bold ph-paper-plane-tilt"></i> Оформить заказ</button>';
         openModal("Купить: " + build.name, html);
         setTimeout(function() {
             var btn = $("#rbSubmitBtn");
             if (!btn) return;
             btn.addEventListener("click", async function() {
-                var contact  = ($("#rbContact") || {}).value.trim();
+                var contact  = ($("#rbContact")  || {}).value.trim();
                 var delivery = ($("#rbDelivery") || {}).value || "";
-                var notes    = ($("#rbNotes") || {}).value.trim();
+                var notes    = ($("#rbNotes")    || {}).value.trim();
                 if (!contact) { toast("Укажите контакт", "error"); return; }
-                var details = "Готовая сборка: " + build.name +
+                var details =
+                    "Готовая сборка: " + build.name +
                     "\nЦена: " + (build.price ? fmt(build.price) + " руб." : "По запросу") +
                     "\nДоставка: " + delivery +
                     (notes ? "\nПожелания: " + notes : "");
                 setBtnLoading(btn, true);
                 var result = await submitOrder("ready_build", "prepay", details, build.price || 0, contact, delivery);
                 setBtnLoading(btn, false);
-                if (result) { closeModal(); }
+                if (result) closeModal();
             });
         }, 60);
     }
@@ -811,7 +857,7 @@
     }
 
     function renderPortfolio() {
-        var grid = $("#portfolioGrid");
+        var grid     = $("#portfolioGrid");
         var items    = state.portfolio;
         var filter   = state.portfolioFilter;
         var filtered = filter === "all" ? items : items.filter(function(x) { return x.category === filter; });
@@ -832,8 +878,8 @@
                 (it.category ? '<span class="p-card-cat">' + esc(CATEGORY_LABELS[it.category] || it.category) + '</span>' : '') +
                 '</div></div>';
         });
-        grid.innerHTML = html;
-        grid._filtered = filtered;
+        grid.innerHTML   = html;
+        grid._filtered   = filtered;
         $$(".p-card").forEach(function(card) {
             card.addEventListener("click", function() {
                 var idx = parseInt(this.getAttribute("data-pidx"), 10);
@@ -864,7 +910,11 @@
             return;
         }
         try {
-            var data = await sbSelect("orders", { eq: ["user_id", state.userId], order: "created_at", asc: false });
+            var data = await sbSelect("orders", {
+                eq:    ["user_id", state.userId],
+                order: "created_at",
+                asc:   false
+            });
             state.orders = data;
             renderOrders();
         } catch(e) {
@@ -889,7 +939,7 @@
                 '</div>' +
                 '<div class="o-details">' +
                 '<span>' + esc(TYPE_MAP[o.order_type] || o.order_type) + '</span>' +
-                (o.total_price > 0 ? '<span>' + fmt(o.total_price) + ' руб.</span>' : '') +
+                (o.total_price > 0 ? '<span>' + fmt(o.total_price) + '\u00a0руб.</span>' : '') +
                 '<span>' + fmtDate(o.created_at) + '</span>' +
                 '</div></div>';
         });
@@ -905,21 +955,23 @@
     function openOrderDetail(order) {
         var fields = [
             ["Тип",    TYPE_MAP[order.order_type] || order.order_type],
-            ["Статус", STATUS_MAP[order.status] || order.status]
+            ["Статус", STATUS_MAP[order.status]   || order.status]
         ];
-        if (order.total_price > 0) fields.push(["Сумма", fmt(order.total_price) + " руб."]);
+        if (order.total_price > 0) fields.push(["Сумма", fmt(order.total_price) + "\u00a0руб."]);
         fields.push(["Создан", fmtDate(order.created_at)]);
         if (order.contact_info) fields.push(["Контакт", order.contact_info]);
 
         var html = '<div style="margin-bottom:16px;">' + statusBadge(order.status) + '</div>';
         fields.forEach(function(f) {
-            html += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">' +
+            html +=
+                '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">' +
                 '<span style="font-size:0.8rem;color:var(--w40);">' + esc(f[0]) + '</span>' +
                 '<span style="font-size:0.8rem;font-weight:600;color:var(--w80);text-align:right;max-width:60%;">' + esc(f[1]) + '</span>' +
                 '</div>';
         });
         if (order.details) {
-            html += '<div style="margin-top:14px;background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);">' +
+            html +=
+                '<div style="margin-top:14px;background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);">' +
                 '<div style="font-size:0.7rem;color:var(--w40);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Детали</div>' +
                 '<div style="font-size:0.78rem;white-space:pre-wrap;color:var(--w60);line-height:1.6;">' + esc(order.details) + '</div>' +
                 '</div>';
@@ -933,10 +985,10 @@
         if (!form) return;
         form.addEventListener("submit", async function(e) {
             e.preventDefault();
-            var contact    = ($("#buyoutContact") || {}).value.trim();
+            var contact    = ($("#buyoutContact")    || {}).value.trim();
             var deviceType = ($("#buyoutDeviceType") || {}).value || "";
-            var condition  = ($("#buyoutCondition") || {}).value || "";
-            var defects    = (($("#buyoutDefects") || {}).value || "").trim() || "нет";
+            var condition  = ($("#buyoutCondition")  || {}).value || "";
+            var defects    = (($("#buyoutDefects")   || {}).value || "").trim() || "нет";
             if (!contact || !deviceType || !condition) { toast("Заполните поля", "error"); return; }
             var details = "Устройство: " + deviceType + "\nСостояние: " + condition + "\nНеисправности: " + defects;
             var btn = form.querySelector('button[type="submit"]');
@@ -954,13 +1006,13 @@
     function adminLoadTab(tabId) {
         state.admin.currentTab = tabId;
         var loaders = {
-            "a-dashboard":   adminLoadStats,
-            "a-services":    adminLoadServices,
-            "a-builds":      adminLoadBuilds,
-            "a-ready":       adminLoadReadyBuilds,
-            "a-orders":      adminLoadOrders,
-            "a-portfolio":   adminLoadPortfolio,
-            "a-users":       adminLoadUsers
+            "a-dashboard": adminLoadStats,
+            "a-services":  adminLoadServices,
+            "a-builds":    adminLoadBuilds,
+            "a-ready":     adminLoadReadyBuilds,
+            "a-orders":    adminLoadOrders,
+            "a-portfolio": adminLoadPortfolio,
+            "a-users":     adminLoadUsers
         };
         if (loaders[tabId]) loaders[tabId]();
     }
@@ -994,27 +1046,27 @@
                 sbSelect("builds",       { count: true }),
                 sbSelect("ready_builds", { count: true }),
                 db.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing").then(function(r) { return r.count || 0; }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r) { return r.count || 0; }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "in_progress").then(function(r) { return r.count || 0; })
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r)  { return r.count || 0; }),
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "in_progress").then(function(r){ return r.count || 0; })
             ]);
             el.innerHTML =
-                adminStat("Пользователей", results[0], "ph-bold ph-users") +
-                adminStat("Всего заказов", results[1], "ph-bold ph-clipboard-text") +
-                adminStat("В обработке",   results[6], "ph-bold ph-hourglass") +
-                adminStat("В работе",      results[8], "ph-bold ph-wrench") +
-                adminStat("Завершено",     results[7], "ph-bold ph-check-circle") +
-                adminStat("Портфолио",     results[2], "ph-bold ph-images") +
-                adminStat("Услуг",         results[3], "ph-bold ph-list-bullets") +
-                adminStat("Конфиг сборок", results[4], "ph-bold ph-desktop-tower") +
-                adminStat("Готовых сборок",results[5], "ph-bold ph-package");
+                adminStat("Пользователей",  results[0], "ph-bold ph-users") +
+                adminStat("Всего заказов",  results[1], "ph-bold ph-clipboard-text") +
+                adminStat("В обработке",    results[6], "ph-bold ph-hourglass") +
+                adminStat("В работе",       results[8], "ph-bold ph-wrench") +
+                adminStat("Завершено",      results[7], "ph-bold ph-check-circle") +
+                adminStat("Портфолио",      results[2], "ph-bold ph-images") +
+                adminStat("Услуг",          results[3], "ph-bold ph-list-bullets") +
+                adminStat("Конфиг сборок",  results[4], "ph-bold ph-desktop-tower") +
+                adminStat("Готовых сборок", results[5], "ph-bold ph-package");
         } catch(e) {
-            el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки</p></div>';
+            el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки статистики</p></div>';
         }
     }
 
     function adminStat(label, num, icon) {
         return '<div class="admin-stat">' +
-            (icon ? '<i class="' + icon + '" style="font-size:1.2rem;color:var(--accent-soft);opacity:0.7;margin-bottom:6px;display:block;"></i>' : '') +
+            (icon ? '<i class="' + icon + '" style="font-size:1.1rem;color:var(--accent-soft);opacity:0.7;margin-bottom:6px;display:block;"></i>' : '') +
             '<div class="admin-stat-num">' + (num || 0) + '</div>' +
             '<div class="admin-stat-label">' + esc(label) + '</div>' +
             '</div>';
@@ -1027,16 +1079,17 @@
         try {
             state.admin.services = await sbSelect("services", { order: "id", asc: true });
             adminRenderServices();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderServices() {
-        var el = $("#adminServicesList");
+        var el   = $("#adminServicesList");
         var list = state.admin.services;
         if (!list.length) { setEmpty(el, "ph-light ph-wrench", "Услуг нет"); return; }
         var html = "";
         list.forEach(function(s) {
-            html += '<div class="admin-item">' +
+            html +=
+                '<div class="admin-item">' +
                 '<div class="admin-item-id">#' + s.id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(s.title) + '</div>' +
@@ -1065,17 +1118,19 @@
     window._adminEditService = function(id) {
         var svc = state.admin.services.find(function(s) { return s.id === id; });
         if (!svc) return;
-        openModal("Редактировать услугу", _svcFormHtml(svc) +
+        openModal("Редактировать услугу",
+            _svcFormHtml(svc) +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveService(' + id + ')">Сохранить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminNewService = function() {
-        openModal("Новая услуга", _svcFormHtml() +
+        openModal("Новая услуга",
+            _svcFormHtml() +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveService(0)">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminSaveService = async function(id) {
@@ -1089,7 +1144,7 @@
         if (!payload.title) { toast("Введите название", "error"); return; }
         try {
             if (id) { await sbUpdate("services", payload, "id", id); toast("Обновлено"); }
-            else    { await sbInsert("services", payload); toast("Добавлено"); }
+            else    { await sbInsert("services", payload);            toast("Добавлено"); }
             closeModal();
             state.loaded.services = false;
             adminLoadServices();
@@ -1106,14 +1161,14 @@
         } catch(e) { toast("Ошибка", "error"); }
     };
 
-    // --- Builds Admin (конфиг) ---
+    // --- Builds Admin ---
     async function adminLoadBuilds() {
         var el = $("#adminBuildsList");
         setLoading(el);
         try {
             state.admin.builds = await sbSelect("builds", { order: "price", asc: true });
             adminRenderBuilds();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderBuilds() {
@@ -1122,7 +1177,8 @@
         if (!list.length) { setEmpty(el, "ph-light ph-desktop-tower", "Сборок нет"); return; }
         var html = "";
         list.forEach(function(b) {
-            html += '<div class="admin-item">' +
+            html +=
+                '<div class="admin-item">' +
                 '<div class="admin-item-id">#' + b.id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(b.name) + ' <span style="color:var(--accent-soft);font-size:0.65rem;">[' + esc(b.tier) + ']</span></div>' +
@@ -1148,17 +1204,19 @@
     window._adminEditBuild = function(id) {
         var bld = state.admin.builds.find(function(b) { return b.id === id; });
         if (!bld) return;
-        openModal("Редактировать сборку", _bldFormHtml(bld) +
+        openModal("Редактировать сборку",
+            _bldFormHtml(bld) +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveBuild(' + id + ')">Сохранить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminNewBuild = function() {
-        openModal("Новая конфиг-сборка", _bldFormHtml() +
+        openModal("Новая конфиг-сборка",
+            _bldFormHtml() +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveBuild(0)">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminSaveBuild = async function(id) {
@@ -1172,7 +1230,7 @@
         if (!payload.name) { toast("Введите название", "error"); return; }
         try {
             if (id) { await sbUpdate("builds", payload, "id", id); toast("Обновлено"); }
-            else    { await sbInsert("builds", payload); toast("Добавлено"); }
+            else    { await sbInsert("builds", payload);            toast("Добавлено"); }
             closeModal();
             state.loaded.builds = false;
             adminLoadBuilds();
@@ -1196,7 +1254,7 @@
         try {
             state.admin.readyBuilds = await sbSelect("ready_builds", { order: "created_at", asc: false });
             adminRenderReadyBuilds();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderReadyBuilds() {
@@ -1206,11 +1264,12 @@
         var statusLabels = { available: "В наличии", reserved: "Забронировано", sold: "Продано" };
         var html = "";
         list.forEach(function(b) {
-            html += '<div class="admin-item">' +
+            html +=
+                '<div class="admin-item">' +
                 '<div class="admin-item-id">#' + b.id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(b.name) + '</div>' +
-                '<div class="admin-item-sub">' + (b.price ? fmt(b.price) + ' руб.' : 'По запросу') + ' · ' + (statusLabels[b.status] || b.status) + '</div>' +
+                '<div class="admin-item-sub">' + (b.price ? fmt(b.price) + '\u00a0руб.' : 'По запросу') + ' · ' + (statusLabels[b.status] || b.status) + '</div>' +
                 '</div>' +
                 '<div class="admin-item-actions">' +
                 '<button class="btn btn-ghost btn-sm" onclick="window._adminEditReady(' + b.id + ')"><i class="ph-bold ph-pencil-simple"></i></button>' +
@@ -1223,7 +1282,7 @@
     function _readyFormHtml(b) {
         b = b || {};
         return '<div class="form-group"><label>Название *</label><input id="ae_rb_name" value="' + esc(b.name || "") + '" placeholder="RTX 4070 + Ryzen 5 7600X"></div>' +
-            '<div class="form-group"><label>Комплектация</label><textarea id="ae_rb_specs" rows="4" placeholder="CPU: ...\nGPU: ...\nRAM: ...">' + esc(b.specs || "") + '</textarea></div>' +
+            '<div class="form-group"><label>Комплектация</label><textarea id="ae_rb_specs" rows="5" placeholder="CPU: Intel i5-13600K\nGPU: RTX 4070\nRAM: 32GB DDR5\nSSD: 1TB NVMe\nCase: Lian Li O11">' + esc(b.specs || "") + '</textarea></div>' +
             '<div class="form-group"><label>Описание</label><textarea id="ae_rb_desc" rows="2">' + esc(b.description || "") + '</textarea></div>' +
             '<div class="form-group"><label>Цена (руб.)</label><input type="number" id="ae_rb_price" value="' + (b.price || "") + '" placeholder="150000"></div>' +
             '<div class="form-group"><label>Ссылка на фото (URL)</label><input id="ae_rb_img" value="' + esc(b.image_url || "") + '" placeholder="https://..."></div>' +
@@ -1237,34 +1296,41 @@
     window._adminEditReady = function(id) {
         var b = state.admin.readyBuilds.find(function(x) { return x.id === id; });
         if (!b) return;
-        openModal("Редактировать готовую сборку", _readyFormHtml(b) +
+        openModal("Редактировать готовую сборку",
+            _readyFormHtml(b) +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(' + id + ')">Сохранить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminNewReady = function() {
-        openModal("Новая готовая сборка", _readyFormHtml() +
+        openModal("Новая готовая сборка",
+            _readyFormHtml() +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(0)">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminSaveReady = async function(id) {
-        var payload = {
+        var priceVal = parseInt(($("#ae_rb_price") || {}).value) || 0;
+        var payload  = {
             name:        ($("#ae_rb_name")   || {}).value || "",
             specs:       ($("#ae_rb_specs")  || {}).value || "",
             description: ($("#ae_rb_desc")   || {}).value || "",
-            price:       parseInt(($("#ae_rb_price") || {}).value) || null,
+            price:       priceVal || null,
             image_url:   ($("#ae_rb_img")    || {}).value || "",
             status:      ($("#ae_rb_status") || {}).value || "available"
         };
         if (!payload.name) { toast("Введите название", "error"); return; }
         try {
             if (id) { await sbUpdate("ready_builds", payload, "id", id); toast("Обновлено"); }
-            else    { await sbInsert("ready_builds", Object.assign({ created_at: new Date().toISOString() }, payload)); toast("Добавлено"); }
+            else {
+                await sbInsert("ready_builds", Object.assign({ created_at: new Date().toISOString() }, payload));
+                toast("Добавлено");
+            }
             closeModal();
             state.loaded.readyBuilds = false;
+            state.readyBuilds        = [];
             adminLoadReadyBuilds();
         } catch(e) { toast("Ошибка сохранения", "error"); }
     };
@@ -1275,6 +1341,7 @@
             await sbDelete("ready_builds", "id", id);
             toast("Удалено");
             state.loaded.readyBuilds = false;
+            state.readyBuilds        = [];
             adminLoadReadyBuilds();
         } catch(e) { toast("Ошибка", "error"); }
     };
@@ -1286,7 +1353,7 @@
         try {
             state.admin.orders = await sbSelect("orders", { order: "created_at", asc: false });
             adminRenderOrders();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderOrders() {
@@ -1295,11 +1362,12 @@
         if (!list.length) { setEmpty(el, "ph-light ph-clipboard-text", "Заказов нет"); return; }
         var html = "";
         list.forEach(function(o) {
-            html += '<div class="admin-item" style="cursor:pointer" onclick="window._adminShowOrder(' + o.id + ')">' +
+            html +=
+                '<div class="admin-item" style="cursor:pointer;" onclick="window._adminShowOrder(' + o.id + ')">' +
                 '<div class="admin-item-id">#' + o.id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(TYPE_MAP[o.order_type] || o.order_type) + ' ' + statusBadge(o.status) + '</div>' +
-                '<div class="admin-item-sub">' + esc(o.contact_info || "—") + ' · ' + fmt(o.total_price) + ' руб. · ' + fmtDate(o.created_at) + '</div>' +
+                '<div class="admin-item-sub">' + esc(o.contact_info || "—") + ' · ' + fmt(o.total_price) + '\u00a0руб. · ' + fmtDate(o.created_at) + '</div>' +
                 '</div>' +
                 '<i class="ph-bold ph-caret-right" style="color:var(--w20);flex-shrink:0;"></i>' +
                 '</div>';
@@ -1319,14 +1387,15 @@
             '<div style="font-size:0.82rem;color:var(--w60);line-height:2;margin-bottom:12px;">' +
             '<b>Тип:</b> '     + esc(TYPE_MAP[o.order_type] || o.order_type) + '<br>' +
             '<b>Контакт:</b> ' + esc(o.contact_info || "—") + '<br>' +
-            '<b>Сумма:</b> '   + fmt(o.total_price) + ' руб.<br>' +
+            '<b>Сумма:</b> '   + fmt(o.total_price) + '\u00a0руб.<br>' +
             '<b>Создан:</b> '  + fmtDate(o.created_at) + '<br>' +
             (o.delivery_info ? '<b>Доставка:</b> ' + esc(o.delivery_info) + '<br>' : '') +
             '</div>';
         if (o.details) {
             html += '<div style="padding:12px;background:var(--surface3);border-radius:8px;border:1px solid var(--border);font-size:0.78rem;white-space:pre-wrap;color:var(--w60);margin-bottom:14px;">' + esc(o.details) + '</div>';
         }
-        html += '<div class="form-group"><label>Изменить статус</label><select id="ae_order_status">' + statusOpts + '</select></div>' +
+        html +=
+            '<div class="form-group"><label>Изменить статус</label><select id="ae_order_status">' + statusOpts + '</select></div>' +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminChangeStatus(' + o.id + ')">Сохранить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Закрыть</button></div>';
@@ -1351,7 +1420,7 @@
         try {
             state.admin.portfolio = await sbSelect("portfolio", { order: "created_at", asc: false });
             adminRenderPortfolio();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderPortfolio() {
@@ -1361,7 +1430,8 @@
         var html = "";
         list.forEach(function(it) {
             var url = portfolioUrl(it.filename);
-            html += '<div class="admin-item">' +
+            html +=
+                '<div class="admin-item">' +
                 '<img src="' + esc(url) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(it.title || "Без названия") + '</div>' +
@@ -1375,7 +1445,7 @@
 
     window._adminAddPortfolio = function() {
         openModal("Добавить в портфолио",
-            '<div class="form-group"><label>Ссылка на изображение (URL) *</label><input id="ae_p_url" placeholder="https://..."></div>' +
+            '<div class="form-group"><label>Ссылка на изображение *</label><input id="ae_p_url" placeholder="https://..."></div>' +
             '<div class="form-group"><label>Название</label><input id="ae_p_title" placeholder="Игровая сборка RTX 4080"></div>' +
             '<div class="form-group"><label>Описание</label><textarea id="ae_p_desc" rows="2"></textarea></div>' +
             '<div class="form-group"><label>Категория</label><select id="ae_p_cat">' +
@@ -1387,7 +1457,7 @@
             '</select></div>' +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSavePortfolio()">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
+            '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>'
         );
     };
 
@@ -1408,7 +1478,7 @@
             });
             toast("Добавлено в портфолио");
             closeModal();
-            state.portfolio = [];
+            state.portfolio        = [];
             state.loaded.portfolio = false;
             adminLoadPortfolio();
         } catch(e) { toast("Ошибка добавления", "error"); }
@@ -1419,7 +1489,7 @@
         try {
             await sbDelete("portfolio", "id", id);
             toast("Удалено");
-            state.portfolio = [];
+            state.portfolio        = [];
             state.loaded.portfolio = false;
             adminLoadPortfolio();
         } catch(e) { toast("Ошибка", "error"); }
@@ -1432,7 +1502,7 @@
         try {
             state.admin.users = await sbSelect("users", { order: "last_active", asc: false });
             adminRenderUsers();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { setEmpty(el, "ph-light ph-warning-circle", "Ошибка загрузки"); }
     }
 
     function adminRenderUsers() {
@@ -1441,7 +1511,8 @@
         if (!list.length) { setEmpty(el, "ph-light ph-users", "Пользователей нет"); return; }
         var html = "";
         list.forEach(function(u) {
-            html += '<div class="admin-item">' +
+            html +=
+                '<div class="admin-item">' +
                 '<div class="admin-item-id" style="font-size:0.6rem;">' + u.user_id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(u.full_name || "—") + '</div>' +
@@ -1533,6 +1604,7 @@
         initPortfolioFilter();
         initServiceForm();
         initBuildForm();
+        initBuildsSwitcher();
         initBuyoutForm();
         initBackButton();
         initKeyboard();
