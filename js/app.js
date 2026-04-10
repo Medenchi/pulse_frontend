@@ -1,32 +1,32 @@
 (function () {
     "use strict";
 
-    // ==================== SUPABASE INIT ====================
-
+    // ==================== SUPABASE ====================
     const SUPABASE_URL = "https://qsvztyhszwauwkxfmirs.supabase.co";
     const SUPABASE_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFzdnp0eWhzendhdXdreGZtaXJzIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzU4MzY0NDQsImV4cCI6MjA5MTQxMjQ0NH0.JSGPwP0WWw02C4UWhLGcjlLH_1zoHgmv07hLGc045Ss";
     const { createClient } = window.supabase;
     const db = createClient(SUPABASE_URL, SUPABASE_KEY);
 
     // ==================== TELEGRAM ====================
-
     var tg = window.Telegram && window.Telegram.WebApp ? window.Telegram.WebApp : null;
-
     if (tg) {
         tg.ready();
         tg.expand();
-        tg.disableVerticalSwipes && tg.disableVerticalSwipes();
+        try { tg.disableVerticalSwipes(); } catch(e) {}
         try { tg.setHeaderColor("#050507"); } catch(e) {}
         try { tg.setBackgroundColor("#050507"); } catch(e) {}
     }
 
-    // ==================== STATE ====================
+    // ==================== ADMIN IDS ====================
+    var ADMIN_IDS = [926176803, 7994155248];
 
+    // ==================== STATE ====================
     var state = {
         current: "home",
         prev: null,
         services: [],
         builds: [],
+        readyBuilds: [],
         portfolio: [],
         portfolioFilter: "all",
         orders: [],
@@ -37,25 +37,27 @@
         loaded: {
             services: false,
             builds: false,
+            readyBuilds: false,
             portfolio: false
         },
         config: {
             bot_username: "PulseComputersShop_bot",
             manager_deeplink: "https://t.me/PulseComputersShop_bot?start=manager",
             admin_personal_link: "https://t.me/Pulse_Gadgets1",
-            taplink_url: "https://pulsegadgets.taplink.ws",
-            admin_ids: [1456789012]
+            taplink_url: "https://pulsegadgets.taplink.ws"
         },
         admin: {
             currentTab: "a-dashboard",
             services: [],
             builds: [],
+            readyBuilds: [],
             orders: [],
             portfolio: [],
             users: []
         }
     };
 
+    // Получаем данные пользователя из Telegram
     if (tg && tg.initDataUnsafe && tg.initDataUnsafe.user) {
         var tgUser = tg.initDataUnsafe.user;
         state.userId   = tgUser.id || 0;
@@ -63,9 +65,13 @@
         state.fullName = (tgUser.first_name || "") + (tgUser.last_name ? " " + tgUser.last_name : "");
     }
 
-    // ==================== CONSTANTS ====================
+    // Проверяем админа
+    if (state.userId && ADMIN_IDS.indexOf(Number(state.userId)) !== -1) {
+        state.isAdmin = true;
+    }
 
-    var TABS = ["home", "services", "builds", "portfolio", "more", "admin"];
+    // ==================== CONSTANTS ====================
+    var TABS = ["home", "services", "builds", "ready-builds", "portfolio", "more", "admin"];
 
     var CATEGORY_LABELS = {
         build:   "Сборка",
@@ -87,28 +93,16 @@
         cancelled:     "Отменен"
     };
 
-    var STATUS_COLORS = {
-        processing:    "#6c5ce7",
-        delivery:      "#0984e3",
-        diagnostics:   "#fdcb6e",
-        in_progress:   "#e17055",
-        ready:         "#00b894",
-        delayed:       "#d63031",
-        waiting_parts: "#fd79a8",
-        completed:     "#55efc4",
-        cancelled:     "#636e72"
-    };
-
     var TYPE_MAP = {
         repair:       "Ремонт",
         build:        "Сборка ПК",
         buyout:       "Скупка",
-        custom_build: "Сборка кастом",
-        service:      "Услуга"
+        custom_build: "Кастом сборка",
+        service:      "Услуга",
+        ready_build:  "Готовая сборка"
     };
 
-    // ==================== DOM HELPERS ====================
-
+    // ==================== DOM ====================
     function $(s)  { return document.querySelector(s); }
     function $$(s) { return document.querySelectorAll(s); }
 
@@ -129,11 +123,8 @@
         try {
             var d = new Date(iso);
             return d.toLocaleString("ru-RU", {
-                day:    "2-digit",
-                month:  "2-digit",
-                year:   "numeric",
-                hour:   "2-digit",
-                minute: "2-digit"
+                day: "2-digit", month: "2-digit", year: "numeric",
+                hour: "2-digit", minute: "2-digit"
             });
         } catch(e) { return iso.slice(0, 10); }
     }
@@ -143,42 +134,38 @@
         return str.length > max ? str.slice(0, max) + "…" : str;
     }
 
-    // ==================== UI PRIMITIVES ====================
-
+    // ==================== UI ====================
     var _toastTimer = null;
     function toast(msg, type) {
         var old = $(".toast");
         if (old) old.remove();
         if (_toastTimer) clearTimeout(_toastTimer);
+        var icons = { success: "ph-check-circle", error: "ph-x-circle", warning: "ph-warning" };
         var el = document.createElement("div");
         el.className = "toast toast-" + (type || "success");
-        el.innerHTML =
-            '<i class="ph-bold ' + (type === "error" ? "ph-x-circle" : type === "warning" ? "ph-warning" : "ph-check-circle") + '"></i>' +
-            '<span>' + esc(msg) + '</span>';
+        el.innerHTML = '<i class="ph-bold ' + (icons[type] || icons.success) + '"></i><span>' + esc(msg) + '</span>';
         document.body.appendChild(el);
         requestAnimationFrame(function() { el.classList.add("toast-show"); });
-        _toastTimer = setTimeout(function () {
+        _toastTimer = setTimeout(function() {
             el.classList.remove("toast-show");
             setTimeout(function() { if (el.parentNode) el.remove(); }, 300);
         }, 3000);
     }
 
-    function openModal(title, html, opts) {
-        opts = opts || {};
+    function openModal(title, html) {
         $("#modalTitle").textContent = title;
         $("#modalBody").innerHTML = html;
-        if (opts.wide) $("#modalOverlay").classList.add("modal-wide");
-        else $("#modalOverlay").classList.remove("modal-wide");
         $("#modalOverlay").classList.remove("hidden");
         document.body.style.overflow = "hidden";
-        var firstInput = $("#modalBody input, #modalBody textarea, #modalBody select");
-        if (firstInput) setTimeout(function() { firstInput.focus(); }, 100);
     }
 
     function closeModal() {
         $("#modalOverlay").classList.add("hidden");
         document.body.style.overflow = "";
-        setTimeout(function() { $("#modalBody").innerHTML = ""; }, 200);
+        setTimeout(function() {
+            var mb = $("#modalBody");
+            if (mb) mb.innerHTML = "";
+        }, 200);
     }
 
     function openViewer(item) {
@@ -206,11 +193,10 @@
         document.body.style.overflow = "";
     }
 
-    function setLoading(el, cols) {
+    function setLoading(el, gridSpan) {
         if (typeof el === "string") el = $(el);
         if (!el) return;
-        var span = cols ? ' style="grid-column:1/-1"' : '';
-        el.innerHTML = '<div class="loading-spinner"' + span + '></div>';
+        el.innerHTML = '<div class="loading-spinner"' + (gridSpan ? ' style="grid-column:1/-1"' : '') + '></div>';
     }
 
     function setEmpty(el, icon, text, sub) {
@@ -220,7 +206,7 @@
             '<div class="portfolio-empty">' +
             '<i class="' + icon + '"></i>' +
             '<p>' + esc(text) + '</p>' +
-            (sub ? '<span style="font-size:0.75rem;color:var(--w30);">' + esc(sub) + '</span>' : '') +
+            (sub ? '<span style="font-size:0.75rem;color:var(--w30);margin-top:4px;display:block;">' + esc(sub) + '</span>' : '') +
             '</div>';
     }
 
@@ -229,7 +215,7 @@
         if (loading) {
             btn.disabled = true;
             btn.dataset.orig = btn.innerHTML;
-            btn.innerHTML = '<div class="loading-spinner" style="width:18px;height:18px;margin:0 auto;"></div>';
+            btn.innerHTML = '<div class="loading-spinner" style="width:18px;height:18px;margin:0 auto;padding:0;"></div>';
         } else {
             btn.disabled = false;
             btn.innerHTML = btn.dataset.orig || "Отправить";
@@ -237,17 +223,11 @@
     }
 
     function statusBadge(status) {
-        var label = STATUS_MAP[status] || status;
-        var color = STATUS_COLORS[status] || "#636e72";
-        return '<span class="o-status s-' + status + '" style="background:' + color + '22;color:' + color + ';border-color:' + color + '44;">' + esc(label) + '</span>';
+        return '<span class="o-status s-' + status + '">' + esc(STATUS_MAP[status] || status) + '</span>';
     }
 
     // ==================== CONFIG ====================
-
     function loadConfig() {
-        if (state.userId && Array.isArray(state.config.admin_ids)) {
-            state.isAdmin = state.config.admin_ids.map(Number).indexOf(Number(state.userId)) !== -1;
-        }
         if (state.isAdmin) {
             var btn = $("#adminNavBtn");
             if (btn) btn.classList.remove("hidden");
@@ -256,38 +236,28 @@
     }
 
     function updateDynamicLinks() {
-        $$("[data-manager-link]").forEach(function(el) {
-            el.href = state.config.manager_deeplink || "#";
-        });
-        $$("[data-admin-link]").forEach(function(el) {
-            el.href = state.config.admin_personal_link || "#";
-        });
-        $$("[data-taplink]").forEach(function(el) {
-            el.href = state.config.taplink_url || "#";
-        });
+        $$("[data-manager-link]").forEach(function(el) { el.href = state.config.manager_deeplink || "#"; });
+        $$("[data-admin-link]").forEach(function(el)   { el.href = state.config.admin_personal_link || "#"; });
+        $$("[data-taplink]").forEach(function(el)      { el.href = state.config.taplink_url || "#"; });
     }
 
     // ==================== SPLASH ====================
-
     function initSplash() {
         var logo = $("#splashLogo");
         if (!logo) return;
         logo.onerror = function() {
-            var splash = $("#splashScreen");
-            if (splash) splash.classList.add("hidden");
-            var app = $("#app");
-            if (app) app.classList.remove("hidden");
+            var s = $("#splashScreen"); if (s) s.classList.add("hidden");
+            var a = $("#app"); if (a) a.classList.remove("hidden");
         };
         logo.onload = function() {
             setTimeout(function() {
-                var splash = $("#splashScreen");
-                if (!splash) return;
-                splash.style.transition = "opacity 0.4s ease";
-                splash.style.opacity    = "0";
+                var s = $("#splashScreen");
+                if (!s) return;
+                s.style.transition = "opacity 0.4s ease";
+                s.style.opacity = "0";
                 setTimeout(function() {
-                    splash.classList.add("hidden");
-                    var app = $("#app");
-                    if (app) app.classList.remove("hidden");
+                    s.classList.add("hidden");
+                    var a = $("#app"); if (a) a.classList.remove("hidden");
                 }, 400);
             }, 1400);
         };
@@ -295,13 +265,9 @@
     }
 
     // ==================== NAVIGATION ====================
-
     function nav(id) {
         if (id === state.current) return;
-        if (id === "admin" && !state.isAdmin) {
-            toast("Нет доступа", "error");
-            return;
-        }
+        if (id === "admin" && !state.isAdmin) { toast("Нет доступа", "error"); return; }
         state.prev = state.current;
         $$(".section").forEach(function(s) { s.classList.remove("active"); });
         var target = $("#section-" + id);
@@ -315,11 +281,12 @@
         state.current = id;
         window.scrollTo({ top: 0, behavior: "instant" });
 
-        if (id === "services"  && !state.loaded.services)  loadServices();
-        if (id === "builds"    && !state.loaded.builds)    loadBuilds();
-        if (id === "portfolio" && !state.loaded.portfolio) loadPortfolio();
-        if (id === "orders")   loadOrders();
-        if (id === "admin")    adminLoadTab(state.admin.currentTab);
+        if (id === "services"     && !state.loaded.services)     loadServices();
+        if (id === "builds"       && !state.loaded.builds)       loadBuilds();
+        if (id === "ready-builds" && !state.loaded.readyBuilds)  loadReadyBuilds();
+        if (id === "portfolio"    && !state.loaded.portfolio)    loadPortfolio();
+        if (id === "orders")  loadOrders();
+        if (id === "admin")   adminLoadTab(state.admin.currentTab);
 
         updateBackButton();
     }
@@ -332,14 +299,15 @@
 
     function getBackTarget() {
         var map = {
-            "service-form": "services",
-            "build-form":   "builds",
-            "buyout":       "more",
-            "products":     "more",
-            "delivery":     "more",
-            "orders":       "more",
-            "contacts":     "more",
-            "admin":        "home"
+            "service-form":  "services",
+            "build-form":    "builds",
+            "ready-builds":  "builds",
+            "buyout":        "more",
+            "products":      "more",
+            "delivery":      "more",
+            "orders":        "more",
+            "contacts":      "more",
+            "admin":         "home"
         };
         return map[state.current] || "home";
     }
@@ -347,8 +315,8 @@
     function initNavigation() {
         $$(".nav-btn").forEach(function(btn) {
             btn.addEventListener("click", function() {
-                var section = this.getAttribute("data-section");
-                if (section) nav(section);
+                var s = this.getAttribute("data-section");
+                if (s) nav(s);
             });
         });
         document.addEventListener("click", function(e) {
@@ -358,34 +326,37 @@
     }
 
     // ==================== SUPABASE HELPERS ====================
-
     async function sbSelect(table, opts) {
         opts = opts || {};
+        if (opts.count) {
+            var r = await db.from(table).select("*", { count: "exact", head: true });
+            if (r.error) throw r.error;
+            return r.count || 0;
+        }
         var q = db.from(table).select(opts.select || "*");
-        if (opts.eq)     q = q.eq(opts.eq[0], opts.eq[1]);
-        if (opts.order)  q = q.order(opts.order, { ascending: !!opts.asc });
-        if (opts.limit)  q = q.limit(opts.limit);
-        if (opts.count)  q = db.from(table).select("*", { count: "exact", head: true });
+        if (opts.eq)    q = q.eq(opts.eq[0], opts.eq[1]);
+        if (opts.order) q = q.order(opts.order, { ascending: !!opts.asc });
+        if (opts.limit) q = q.limit(opts.limit);
         var result = await q;
         if (result.error) throw result.error;
-        return opts.count ? result.count : (result.data || []);
+        return result.data || [];
     }
 
     async function sbInsert(table, payload) {
-        var result = await db.from(table).insert([payload]).select();
-        if (result.error) throw result.error;
-        return result.data[0];
+        var r = await db.from(table).insert([payload]).select();
+        if (r.error) throw r.error;
+        return r.data[0];
     }
 
     async function sbUpdate(table, payload, col, val) {
-        var result = await db.from(table).update(payload).eq(col, val).select();
-        if (result.error) throw result.error;
-        return result.data[0];
+        var r = await db.from(table).update(payload).eq(col, val).select();
+        if (r.error) throw r.error;
+        return r.data ? r.data[0] : null;
     }
 
     async function sbDelete(table, col, val) {
-        var result = await db.from(table).delete().eq(col, val);
-        if (result.error) throw result.error;
+        var r = await db.from(table).delete().eq(col, val);
+        if (r.error) throw r.error;
         return true;
     }
 
@@ -396,36 +367,31 @@
     }
 
     // ==================== ORDERS ====================
-
     async function submitOrder(type, pay, details, price, contact, delivery) {
-        if (!state.userId) {
-            toast("Откройте приложение через Telegram", "error");
-            return null;
-        }
+        if (!state.userId) { toast("Откройте через Telegram", "error"); return null; }
         try {
             var row = await sbInsert("orders", {
-                user_id:      state.userId,
-                order_type:   type,
-                payment_type: pay,
-                details:      details || "",
-                total_price:  price || 0,
-                contact_info: contact || "",
-                delivery_info:delivery || "",
-                status:       "processing",
-                created_at:   new Date().toISOString(),
-                updated_at:   new Date().toISOString()
+                user_id:       state.userId,
+                order_type:    type,
+                payment_type:  pay,
+                details:       details || "",
+                total_price:   price || 0,
+                contact_info:  contact || "",
+                delivery_info: delivery || "",
+                status:        "processing",
+                created_at:    new Date().toISOString(),
+                updated_at:    new Date().toISOString()
             });
             toast("Заявка #" + row.id + " создана!", "success");
             return row;
         } catch(e) {
             console.error("submitOrder:", e);
-            toast("Ошибка отправки заявки", "error");
+            toast("Ошибка отправки", "error");
             return null;
         }
     }
 
     // ==================== SERVICES ====================
-
     async function loadServices() {
         var el = $("#servicesList");
         setLoading(el);
@@ -442,10 +408,7 @@
     function renderServices() {
         var el = $("#servicesList");
         var list = state.services;
-        if (!list.length) {
-            setEmpty(el, "ph-light ph-wrench", "Услуги скоро появятся");
-            return;
-        }
+        if (!list.length) { setEmpty(el, "ph-light ph-wrench", "Услуги скоро появятся"); return; }
         var html = "";
         list.forEach(function(s, i) {
             html +=
@@ -453,7 +416,7 @@
                 '<div class="svc-icon"><i class="' + esc(s.icon || "ph-bold ph-wrench") + '"></i></div>' +
                 '<div class="svc-body">' +
                 '<h3>' + esc(s.title) + '</h3>' +
-                '<p class="svc-desc">' + esc(clamp(s.description, 80)) + '</p>' +
+                '<p class="svc-desc">' + esc(clamp(s.description, 70)) + '</p>' +
                 '<div class="svc-footer">' +
                 '<span class="svc-price">' + esc(s.price_text) + '</span>' +
                 '<span class="svc-pay-badge ' + (s.payment === "prepay" ? "prepay" : "postpay") + '">' +
@@ -472,11 +435,10 @@
     }
 
     // ==================== SERVICE FORM ====================
-
     function openServiceForm(service) {
         var container = $("#serviceFormContainer");
-        var title = $("#serviceFormServiceName");
-        if (title) title.textContent = service.title + " — " + service.price_text;
+        var titleEl = $("#serviceFormServiceName");
+        if (titleEl) titleEl.textContent = service.title + " — " + service.price_text;
 
         var fields = [];
         if (service.form_fields) {
@@ -499,9 +461,7 @@
                 html += '<textarea class="svc-field" data-field-id="' + esc(f.id) + '" rows="3" placeholder="' + esc(f.placeholder || "") + '"' + (f.required ? " required" : "") + '></textarea>';
             } else if (f.type === "select") {
                 html += '<select class="svc-field" data-field-id="' + esc(f.id) + '"' + (f.required ? " required" : "") + '><option value="">— Выберите —</option>';
-                (f.options || []).forEach(function(o) {
-                    html += '<option value="' + esc(o) + '">' + esc(o) + '</option>';
-                });
+                (f.options || []).forEach(function(o) { html += '<option value="' + esc(o) + '">' + esc(o) + '</option>'; });
                 html += '</select>';
             } else {
                 html += '<input type="' + (f.type || "text") + '" class="svc-field" data-field-id="' + esc(f.id) + '" placeholder="' + esc(f.placeholder || "") + '"' + (f.required ? " required" : "") + '>';
@@ -523,9 +483,9 @@
             var price   = parseFloat(($("#svcFormServicePrice") || {}).value) || 0;
             var payment = ($("#svcFormPayment") || {}).value || "postpay";
             var fieldEls = form.querySelectorAll(".svc-field");
-            var details  = "Услуга: " + title + "\n";
-            var contact  = "";
-            var allOk    = true;
+            var details = "Услуга: " + title + "\n";
+            var contact = "";
+            var allOk   = true;
 
             fieldEls.forEach(function(fel) {
                 var fid = fel.getAttribute("data-field-id");
@@ -534,7 +494,7 @@
                 else fel.classList.remove("input-error");
                 if (fid === "contact") contact = val;
                 if (val) {
-                    var lbl  = fid;
+                    var lbl = fid;
                     var prev = fel.previousElementSibling;
                     if (prev && prev.tagName === "LABEL") lbl = prev.textContent.replace("*","").trim();
                     details += lbl + ": " + val + "\n";
@@ -550,8 +510,7 @@
         });
     }
 
-    // ==================== BUILDS ====================
-
+    // ==================== BUILDS (конфигуратор) ====================
     async function loadBuilds() {
         var el = $("#buildsList");
         setLoading(el);
@@ -561,24 +520,22 @@
             renderBuilds();
         } catch(e) {
             console.error(e);
-            setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить сборки", "Попробуйте позже");
+            setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить сборки");
         }
     }
 
     function renderBuilds() {
         var el = $("#buildsList");
         var list = state.builds;
-        if (!list.length) {
-            setEmpty(el, "ph-light ph-desktop-tower", "Сборки скоро появятся");
-            return;
-        }
+        if (!list.length) { setEmpty(el, "ph-light ph-desktop-tower", "Сборки скоро появятся"); return; }
         var html = "";
         list.forEach(function(b, i) {
             html +=
                 '<div class="build-card" data-bi="' + i + '">' +
                 '<div class="build-top">' +
                 '<span class="build-name">' + esc(b.name) + '</span>' +
-                '<span class="build-tag">' + esc(b.tier) + '</span></div>' +
+                '<span class="build-tag">' + esc(b.tier) + '</span>' +
+                '</div>' +
                 '<div class="build-desc">' + esc(b.description) + '</div>' +
                 '<div class="build-bottom">' +
                 '<span class="build-price">' + esc(b.price_text) + '</span>' +
@@ -608,10 +565,12 @@
             '<p style="color:var(--w40);font-size:0.84rem;margin-bottom:16px;line-height:1.55;">' + esc(build.description) + '</p>' +
             '<div style="text-align:center;padding:18px;background:var(--surface3);border-radius:var(--r);margin-bottom:16px;border:1px solid var(--border);">' +
             '<div style="font-family:var(--mono);font-size:1.35rem;font-weight:800;color:var(--w95);">' + esc(build.price_text) + '</div>' +
-            '<div style="font-size:0.72rem;color:var(--w40);margin-top:4px;">Сборка + комплектующие</div></div>' +
+            '<div style="font-size:0.72rem;color:var(--w40);margin-top:4px;">Сборка + комплектующие</div>' +
+            '</div>' +
             '<div style="display:flex;flex-direction:column;gap:8px;">' +
             '<button class="btn btn-primary btn-block" id="mdlOrderBuild"><i class="ph-bold ph-shopping-cart-simple"></i> Заказать сборку</button>' +
-            '<a href="' + esc(ml) + '" class="btn btn-ghost btn-block" target="_blank"><i class="ph-bold ph-chat-circle-dots"></i> Рассрочка / Доли</a></div>';
+            '<a href="' + esc(ml) + '" class="btn btn-ghost btn-block" target="_blank"><i class="ph-bold ph-chat-circle-dots"></i> Рассрочка / Доли</a>' +
+            '</div>';
         openModal(build.name, html);
         setTimeout(function() {
             var btn = $("#mdlOrderBuild");
@@ -620,25 +579,29 @@
     }
 
     function openBuildForm(build) {
-        $("#buildForm").reset();
-        $("#buildTypeId").value      = build.id;
-        $("#buildTypeName").value    = build.name;
-        $("#buildTypePrice").value   = build.price;
+        var form = $("#buildForm");
+        if (form) form.reset();
+        $("#buildTypeId").value    = build.id;
+        $("#buildTypeName").value  = build.name;
+        $("#buildTypePrice").value = build.price;
         $("#buildFormTypeName").textContent = build.name + " — " + build.price_text;
-        $("#buildBudget").value      = build.price;
-        $("#cdekFields").classList.add("hidden");
+        $("#buildBudget").value    = build.price;
+        var cdek = $("#cdekFields");
+        if (cdek) cdek.classList.add("hidden");
         removeCdekRequired();
         nav("build-form");
     }
 
     function openCustomBuildForm() {
-        $("#buildForm").reset();
-        $("#buildTypeId").value      = "0";
-        $("#buildTypeName").value    = "Индивидуальная сборка";
-        $("#buildTypePrice").value   = "0";
+        var form = $("#buildForm");
+        if (form) form.reset();
+        $("#buildTypeId").value    = "0";
+        $("#buildTypeName").value  = "Индивидуальная сборка";
+        $("#buildTypePrice").value = "0";
         $("#buildFormTypeName").textContent = "Индивидуальная сборка";
-        $("#buildBudget").value      = "";
-        $("#cdekFields").classList.add("hidden");
+        $("#buildBudget").value    = "";
+        var cdek = $("#cdekFields");
+        if (cdek) cdek.classList.add("hidden");
         removeCdekRequired();
         nav("build-form");
     }
@@ -667,28 +630,25 @@
         }
         form.addEventListener("submit", async function(e) {
             e.preventDefault();
-            var typeName    = ($("#buildTypeName") || {}).value || "";
-            var contact     = ($("#buildContact") || {}).value.trim();
-            var budget      = parseInt(($("#buildBudget") || {}).value, 10) || 0;
-            var tasks       = ($("#buildTasks") || {}).value || "";
-            var color       = ($("#buildColor") || {}).value.trim();
-            var rgb         = ($("#buildRGB") || {}).value || "";
-            var vinyl       = ($("#buildVinyl") || {}).value || "";
-            var deliveryType= ($("#buildDeliveryType") || {}).value || "";
-            var notes       = ($("#buildNotes") || {}).value.trim();
-
+            var typeName     = ($("#buildTypeName") || {}).value || "";
+            var contact      = ($("#buildContact") || {}).value.trim();
+            var budget       = parseInt(($("#buildBudget") || {}).value, 10) || 0;
+            var tasks        = ($("#buildTasks") || {}).value || "";
+            var color        = ($("#buildColor") || {}).value.trim();
+            var rgb          = ($("#buildRGB") || {}).value || "";
+            var vinyl        = ($("#buildVinyl") || {}).value || "";
+            var deliveryType = ($("#buildDeliveryType") || {}).value || "";
+            var notes        = ($("#buildNotes") || {}).value.trim();
             if (!contact || !budget || !tasks) { toast("Заполните обязательные поля", "error"); return; }
-
             var details =
-                "Тип: "         + typeName +
-                "\nБюджет: "    + fmt(budget) + " руб." +
-                "\nЗадача: "    + tasks +
-                "\nЦвет: "      + (color || "не указан") +
-                "\nПодсветка: " + rgb +
-                "\nКастомизация: " + vinyl +
-                "\nДоставка: "  + deliveryType;
+                "Тип: "           + typeName +
+                "\nБюджет: "      + fmt(budget) + " руб." +
+                "\nЗадача: "      + tasks +
+                "\nЦвет: "        + (color || "не указан") +
+                "\nПодсветка: "   + rgb +
+                "\nКастом: "      + vinyl +
+                "\nДоставка: "    + deliveryType;
             if (notes) details += "\nПожелания: " + notes;
-
             var deliveryInfo = "";
             if (deliveryType === "СДЭК") {
                 var fio   = ($("#buildDeliveryFio") || {}).value.trim();
@@ -697,19 +657,143 @@
                 if (!fio || !addr || !phone) { toast("Заполните данные доставки", "error"); return; }
                 deliveryInfo = "СДЭК\nФИО: " + fio + "\nАдрес: " + addr + "\nТелефон: " + phone;
             }
-
             var btn = form.querySelector('button[type="submit"]');
             setBtnLoading(btn, true);
             var result = await submitOrder("build", "prepay", details, budget, contact, deliveryInfo);
             setBtnLoading(btn, false);
-            if (result) { form.reset(); cdek.classList.add("hidden"); removeCdekRequired(); nav("builds"); }
+            if (result) { form.reset(); if (cdek) cdek.classList.add("hidden"); removeCdekRequired(); nav("builds"); }
         });
         var customBtn = $("#openCustomBuildForm");
         if (customBtn) customBtn.addEventListener("click", openCustomBuildForm);
     }
 
-    // ==================== PORTFOLIO ====================
+    // ==================== ГОТОВЫЕ СБОРКИ ====================
+    async function loadReadyBuilds() {
+        var el = $("#readyBuildsList");
+        setLoading(el);
+        try {
+            state.readyBuilds = await sbSelect("ready_builds", { order: "created_at", asc: false });
+            state.loaded.readyBuilds = true;
+            renderReadyBuilds();
+        } catch(e) {
+            console.error(e);
+            setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить готовые сборки");
+        }
+    }
 
+    function renderReadyBuilds() {
+        var el = $("#readyBuildsList");
+        var list = state.readyBuilds;
+        if (!list.length) {
+            setEmpty(el, "ph-light ph-desktop-tower", "Готовых сборок пока нет", "Загляните позже");
+            return;
+        }
+        var html = "";
+        list.forEach(function(b, i) {
+            var statusLabel = b.status === "available" ? "В наличии" : b.status === "reserved" ? "Забронировано" : "Продано";
+            var statusClass = b.status === "available" ? "rb-status-available" : b.status === "reserved" ? "rb-status-reserved" : "rb-status-sold";
+            html +=
+                '<div class="rb-card" data-rbi="' + i + '">' +
+                (b.image_url ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>' : '') +
+                '<div class="rb-body">' +
+                '<div class="rb-top">' +
+                '<span class="rb-name">' + esc(b.name) + '</span>' +
+                '<span class="rb-badge ' + statusClass + '">' + statusLabel + '</span>' +
+                '</div>' +
+                (b.specs ? '<p class="rb-specs">' + esc(clamp(b.specs, 120)) + '</p>' : '') +
+                '<div class="rb-bottom">' +
+                '<span class="rb-price">' + (b.price ? fmt(b.price) + ' руб.' : 'По запросу') + '</span>' +
+                (b.status === "available" ?
+                    '<button class="btn btn-primary btn-small rb-order-btn" data-rbi="' + i + '">Купить</button>' :
+                    '<button class="btn btn-ghost btn-small" disabled>' + statusLabel + '</button>'
+                ) +
+                '</div></div></div>';
+        });
+        el.innerHTML = html;
+        $$(".rb-card").forEach(function(card) {
+            card.addEventListener("click", function(e) {
+                if (e.target.closest(".rb-order-btn")) return;
+                var idx = parseInt(this.getAttribute("data-rbi"), 10);
+                if (state.readyBuilds[idx]) openReadyBuildDetail(state.readyBuilds[idx]);
+            });
+        });
+        $$(".rb-order-btn").forEach(function(btn) {
+            btn.addEventListener("click", function(e) {
+                e.stopPropagation();
+                var idx = parseInt(this.getAttribute("data-rbi"), 10);
+                if (state.readyBuilds[idx]) openReadyBuildOrder(state.readyBuilds[idx]);
+            });
+        });
+    }
+
+    function openReadyBuildDetail(build) {
+        var statusLabel = build.status === "available" ? "В наличии" : build.status === "reserved" ? "Забронировано" : "Продано";
+        var html = "";
+        if (build.image_url) {
+            html += '<img src="' + esc(build.image_url) + '" style="width:100%;border-radius:var(--r);margin-bottom:14px;object-fit:cover;max-height:220px;" loading="lazy">';
+        }
+        html +=
+            '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px;">' +
+            '<span class="rb-badge ' + (build.status === "available" ? "rb-status-available" : "rb-status-sold") + '">' + statusLabel + '</span>' +
+            '<span style="font-family:var(--mono);font-size:1.1rem;font-weight:800;color:var(--w95);">' + (build.price ? fmt(build.price) + ' руб.' : 'По запросу') + '</span>' +
+            '</div>';
+        if (build.specs) {
+            html += '<div style="background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);margin-bottom:14px;">' +
+                '<div style="font-size:0.7rem;color:var(--w40);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Комплектация</div>' +
+                '<div style="font-size:0.78rem;white-space:pre-wrap;color:var(--w60);line-height:1.6;">' + esc(build.specs) + '</div>' +
+                '</div>';
+        }
+        if (build.description) {
+            html += '<p style="font-size:0.8rem;color:var(--w40);line-height:1.55;margin-bottom:14px;">' + esc(build.description) + '</p>';
+        }
+        if (build.status === "available") {
+            html += '<button class="btn btn-primary btn-block" id="mdlBuyReady"><i class="ph-bold ph-shopping-cart-simple"></i> Купить сборку</button>';
+        }
+        openModal(build.name, html);
+        setTimeout(function() {
+            var btn = $("#mdlBuyReady");
+            if (btn) btn.addEventListener("click", function() { closeModal(); openReadyBuildOrder(build); });
+        }, 60);
+    }
+
+    function openReadyBuildOrder(build) {
+        var html =
+            '<div style="background:var(--surface3);border-radius:var(--r);padding:12px;margin-bottom:16px;border:1px solid var(--border);">' +
+            '<div style="font-size:0.78rem;font-weight:700;color:var(--w80);">' + esc(build.name) + '</div>' +
+            '<div style="font-family:var(--mono);font-size:1rem;font-weight:800;color:var(--accent-soft);margin-top:4px;">' + (build.price ? fmt(build.price) + ' руб.' : 'По запросу') + '</div>' +
+            '</div>' +
+            '<div class="form-group"><label>Контакт для связи <span class="req">*</span></label>' +
+            '<input type="text" id="rbContact" placeholder="Телефон или @telegram" class="rb-field"></div>' +
+            '<div class="form-group"><label>Доставка</label>' +
+            '<select id="rbDelivery" class="rb-field">' +
+            '<option value="Самовывоз">Самовывоз (Краснодар)</option>' +
+            '<option value="СДЭК">СДЭК по России</option>' +
+            '</select></div>' +
+            '<div class="form-group"><label>Пожелания</label>' +
+            '<textarea id="rbNotes" rows="2" placeholder="Доп. вопросы..." class="rb-field"></textarea></div>' +
+            '<button class="btn btn-primary btn-block" id="rbSubmitBtn" style="margin-top:8px;"><i class="ph-bold ph-paper-plane-tilt"></i> Оформить заказ</button>';
+        openModal("Купить: " + build.name, html);
+        setTimeout(function() {
+            var btn = $("#rbSubmitBtn");
+            if (!btn) return;
+            btn.addEventListener("click", async function() {
+                var contact  = ($("#rbContact") || {}).value.trim();
+                var delivery = ($("#rbDelivery") || {}).value || "";
+                var notes    = ($("#rbNotes") || {}).value.trim();
+                if (!contact) { toast("Укажите контакт", "error"); return; }
+                var details = "Готовая сборка: " + build.name +
+                    "\nЦена: " + (build.price ? fmt(build.price) + " руб." : "По запросу") +
+                    "\nДоставка: " + delivery +
+                    (notes ? "\nПожелания: " + notes : "");
+                setBtnLoading(btn, true);
+                var result = await submitOrder("ready_build", "prepay", details, build.price || 0, contact, delivery);
+                setBtnLoading(btn, false);
+                if (result) { closeModal(); }
+            });
+        }, 60);
+    }
+
+    // ==================== PORTFOLIO ====================
     async function loadPortfolio() {
         var grid = $("#portfolioGrid");
         setLoading(grid, true);
@@ -731,7 +815,6 @@
         var items    = state.portfolio;
         var filter   = state.portfolioFilter;
         var filtered = filter === "all" ? items : items.filter(function(x) { return x.category === filter; });
-
         if (!filtered.length) {
             setEmpty(grid,
                 items.length ? "ph-light ph-funnel" : "ph-light ph-image-broken",
@@ -773,24 +856,18 @@
     }
 
     // ==================== USER ORDERS ====================
-
     async function loadOrders() {
         var el = $("#ordersList");
         setLoading(el);
         if (!state.userId) {
-            setEmpty(el, "ph-light ph-user-circle", "Войдите через Telegram", "Заказы привязаны к вашему аккаунту");
+            setEmpty(el, "ph-light ph-user-circle", "Войдите через Telegram");
             return;
         }
         try {
-            var data = await sbSelect("orders", {
-                eq:    ["user_id", state.userId],
-                order: "created_at",
-                asc:   false
-            });
+            var data = await sbSelect("orders", { eq: ["user_id", state.userId], order: "created_at", asc: false });
             state.orders = data;
             renderOrders();
         } catch(e) {
-            console.error(e);
             setEmpty(el, "ph-light ph-warning-circle", "Не удалось загрузить заказы");
         }
     }
@@ -808,11 +885,11 @@
                 '<div class="o-card" data-oi="' + i + '">' +
                 '<div class="o-card-top">' +
                 '<span class="o-num">#' + o.id + '</span>' +
-                statusBadge(o.status) + '</div>' +
+                statusBadge(o.status) +
+                '</div>' +
                 '<div class="o-details">' +
-                '<span>' + esc(TYPE_MAP[o.order_type] || o.order_type) + '</span>';
-            if (o.total_price > 0) html += '<span>' + fmt(o.total_price) + ' руб.</span>';
-            html +=
+                '<span>' + esc(TYPE_MAP[o.order_type] || o.order_type) + '</span>' +
+                (o.total_price > 0 ? '<span>' + fmt(o.total_price) + ' руб.</span>' : '') +
                 '<span>' + fmtDate(o.created_at) + '</span>' +
                 '</div></div>';
         });
@@ -827,39 +904,30 @@
 
     function openOrderDetail(order) {
         var fields = [
-            ["Тип", TYPE_MAP[order.order_type] || order.order_type],
+            ["Тип",    TYPE_MAP[order.order_type] || order.order_type],
             ["Статус", STATUS_MAP[order.status] || order.status]
         ];
         if (order.total_price > 0) fields.push(["Сумма", fmt(order.total_price) + " руб."]);
         fields.push(["Создан", fmtDate(order.created_at)]);
-        if (order.updated_at && order.updated_at !== order.created_at) {
-            fields.push(["Обновлён", fmtDate(order.updated_at)]);
-        }
         if (order.contact_info) fields.push(["Контакт", order.contact_info]);
 
-        var html =
-            '<div style="margin-bottom:16px;">' + statusBadge(order.status) + '</div>';
-
+        var html = '<div style="margin-bottom:16px;">' + statusBadge(order.status) + '</div>';
         fields.forEach(function(f) {
-            html +=
-                '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">' +
+            html += '<div style="display:flex;justify-content:space-between;padding:9px 0;border-bottom:1px solid var(--border);">' +
                 '<span style="font-size:0.8rem;color:var(--w40);">' + esc(f[0]) + '</span>' +
                 '<span style="font-size:0.8rem;font-weight:600;color:var(--w80);text-align:right;max-width:60%;">' + esc(f[1]) + '</span>' +
                 '</div>';
         });
-
         if (order.details) {
-            html +=
-                '<div style="margin-top:14px;background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);">' +
-                '<div style="font-size:0.7rem;color:var(--w40);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Детали заказа</div>' +
+            html += '<div style="margin-top:14px;background:var(--surface3);border-radius:var(--r);padding:13px;border:1px solid var(--border);">' +
+                '<div style="font-size:0.7rem;color:var(--w40);margin-bottom:6px;font-weight:600;text-transform:uppercase;letter-spacing:0.05em;">Детали</div>' +
                 '<div style="font-size:0.78rem;white-space:pre-wrap;color:var(--w60);line-height:1.6;">' + esc(order.details) + '</div>' +
                 '</div>';
         }
         openModal("Заказ #" + order.id, html);
     }
 
-    // ==================== BUYOUT FORM ====================
-
+    // ==================== BUYOUT ====================
     function initBuyoutForm() {
         var form = $("#buyoutForm");
         if (!form) return;
@@ -886,12 +954,13 @@
     function adminLoadTab(tabId) {
         state.admin.currentTab = tabId;
         var loaders = {
-            "a-dashboard": adminLoadStats,
-            "a-services":  adminLoadServices,
-            "a-builds":    adminLoadBuilds,
-            "a-orders":    adminLoadOrders,
-            "a-portfolio": adminLoadPortfolio,
-            "a-users":     adminLoadUsers
+            "a-dashboard":   adminLoadStats,
+            "a-services":    adminLoadServices,
+            "a-builds":      adminLoadBuilds,
+            "a-ready":       adminLoadReadyBuilds,
+            "a-orders":      adminLoadOrders,
+            "a-portfolio":   adminLoadPortfolio,
+            "a-users":       adminLoadUsers
         };
         if (loaders[tabId]) loaders[tabId]();
     }
@@ -917,100 +986,96 @@
         var el = $("#adminStatsGrid");
         setLoading(el);
         try {
-            var [uC, oC, pC, sC, bC, procC, doneC] = await Promise.all([
-                sbSelect("users",     { count: true }),
-                sbSelect("orders",    { count: true }),
-                sbSelect("portfolio", { count: true }),
-                sbSelect("services",  { count: true }),
-                sbSelect("builds",    { count: true }),
+            var results = await Promise.all([
+                sbSelect("users",        { count: true }),
+                sbSelect("orders",       { count: true }),
+                sbSelect("portfolio",    { count: true }),
+                sbSelect("services",     { count: true }),
+                sbSelect("builds",       { count: true }),
+                sbSelect("ready_builds", { count: true }),
                 db.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing").then(function(r) { return r.count || 0; }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r) { return r.count || 0; })
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r) { return r.count || 0; }),
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "in_progress").then(function(r) { return r.count || 0; })
             ]);
             el.innerHTML =
-                adminStat("Пользователей", uC,    "ph-bold ph-users") +
-                adminStat("Заказов",       oC,    "ph-bold ph-clipboard-text") +
-                adminStat("В обработке",   procC, "ph-bold ph-spinner") +
-                adminStat("Завершено",     doneC, "ph-bold ph-check-circle") +
-                adminStat("Портфолио",     pC,    "ph-bold ph-images") +
-                adminStat("Услуг",         sC,    "ph-bold ph-wrench") +
-                adminStat("Сборок",        bC,    "ph-bold ph-desktop-tower");
+                adminStat("Пользователей", results[0], "ph-bold ph-users") +
+                adminStat("Всего заказов", results[1], "ph-bold ph-clipboard-text") +
+                adminStat("В обработке",   results[6], "ph-bold ph-hourglass") +
+                adminStat("В работе",      results[8], "ph-bold ph-wrench") +
+                adminStat("Завершено",     results[7], "ph-bold ph-check-circle") +
+                adminStat("Портфолио",     results[2], "ph-bold ph-images") +
+                adminStat("Услуг",         results[3], "ph-bold ph-list-bullets") +
+                adminStat("Конфиг сборок", results[4], "ph-bold ph-desktop-tower") +
+                adminStat("Готовых сборок",results[5], "ph-bold ph-package");
         } catch(e) {
-            el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки статистики</p></div>';
+            el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки</p></div>';
         }
     }
 
     function adminStat(label, num, icon) {
-        return (
-            '<div class="admin-stat">' +
-            (icon ? '<i class="' + icon + ' admin-stat-icon"></i>' : '') +
+        return '<div class="admin-stat">' +
+            (icon ? '<i class="' + icon + '" style="font-size:1.2rem;color:var(--accent-soft);opacity:0.7;margin-bottom:6px;display:block;"></i>' : '') +
             '<div class="admin-stat-num">' + (num || 0) + '</div>' +
             '<div class="admin-stat-label">' + esc(label) + '</div>' +
-            '</div>'
-        );
+            '</div>';
     }
 
-    // --- Services ---
+    // --- Services Admin ---
     async function adminLoadServices() {
         var el = $("#adminServicesList");
         setLoading(el);
         try {
             state.admin.services = await sbSelect("services", { order: "id", asc: true });
             adminRenderServices();
-        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка загрузки</p></div>'; }
     }
 
     function adminRenderServices() {
         var el = $("#adminServicesList");
         var list = state.admin.services;
-        if (!list.length) { el.innerHTML = '<div class="portfolio-empty"><p>Услуг нет</p></div>'; return; }
+        if (!list.length) { setEmpty(el, "ph-light ph-wrench", "Услуг нет"); return; }
         var html = "";
         list.forEach(function(s) {
-            html +=
-                '<div class="admin-item">' +
+            html += '<div class="admin-item">' +
                 '<div class="admin-item-id">#' + s.id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(s.title) + '</div>' +
-                '<div class="admin-item-sub">' + esc(s.price_text) + ' · ' + (s.payment === "prepay" ? "Предоплата" : "По факту") + '</div></div>' +
+                '<div class="admin-item-sub">' + esc(s.price_text) + ' · ' + (s.payment === "prepay" ? "Предоплата" : "По факту") + '</div>' +
+                '</div>' +
                 '<div class="admin-item-actions">' +
                 '<button class="btn btn-ghost btn-sm" onclick="window._adminEditService(' + s.id + ')"><i class="ph-bold ph-pencil-simple"></i></button>' +
-                '<button class="btn btn-ghost btn-sm" style="color:var(--red,#e17055);" onclick="window._adminDeleteService(' + s.id + ')"><i class="ph-bold ph-trash"></i></button>' +
+                '<button class="btn btn-ghost btn-sm" style="color:#e17055;" onclick="window._adminDeleteService(' + s.id + ')"><i class="ph-bold ph-trash"></i></button>' +
                 '</div></div>';
         });
         el.innerHTML = html;
     }
 
-    function _serviceForm(svc) {
-        svc = svc || {};
-        return (
-            '<div class="form-group"><label>Название *</label><input id="ae_svc_title" value="' + esc(svc.title || "") + '" placeholder="Название услуги"></div>' +
-            '<div class="form-group"><label>Описание</label><textarea id="ae_svc_desc" rows="3" placeholder="Краткое описание">' + esc(svc.description || "") + '</textarea></div>' +
-            '<div class="form-group"><label>Цена (текст)</label><input id="ae_svc_pt" value="' + esc(svc.price_text || "") + '" placeholder="от 1 000 руб."></div>' +
-            '<div class="form-group"><label>Мин. цена (число)</label><input type="number" id="ae_svc_pf" value="' + (svc.price_from || 0) + '"></div>' +
+    function _svcFormHtml(s) {
+        s = s || {};
+        return '<div class="form-group"><label>Название *</label><input id="ae_svc_title" value="' + esc(s.title || "") + '" placeholder="Название услуги"></div>' +
+            '<div class="form-group"><label>Описание</label><textarea id="ae_svc_desc" rows="2">' + esc(s.description || "") + '</textarea></div>' +
+            '<div class="form-group"><label>Цена (текст)</label><input id="ae_svc_pt" value="' + esc(s.price_text || "") + '" placeholder="от 1 000 руб."></div>' +
+            '<div class="form-group"><label>Мин. цена (число)</label><input type="number" id="ae_svc_pf" value="' + (s.price_from || 0) + '"></div>' +
             '<div class="form-group"><label>Оплата</label><select id="ae_svc_pay">' +
-            '<option value="postpay"' + (svc.payment === "postpay" ? " selected" : "") + '>По факту</option>' +
-            '<option value="prepay"'  + (svc.payment === "prepay"  ? " selected" : "") + '>Предоплата</option>' +
-            '</select></div>'
-        );
+            '<option value="postpay"' + (s.payment === "postpay" ? " selected" : "") + '>По факту</option>' +
+            '<option value="prepay"'  + (s.payment === "prepay"  ? " selected" : "") + '>Предоплата</option>' +
+            '</select></div>';
     }
 
     window._adminEditService = function(id) {
         var svc = state.admin.services.find(function(s) { return s.id === id; });
         if (!svc) return;
-        openModal("Редактировать услугу",
-            _serviceForm(svc) +
+        openModal("Редактировать услугу", _svcFormHtml(svc) +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveService(' + id + ')">Сохранить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
-        );
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminNewService = function() {
-        openModal("Новая услуга",
-            _serviceForm() +
+        openModal("Новая услуга", _svcFormHtml() +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveService(0)">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
-        );
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminSaveService = async function(id) {
@@ -1024,7 +1089,7 @@
         if (!payload.title) { toast("Введите название", "error"); return; }
         try {
             if (id) { await sbUpdate("services", payload, "id", id); toast("Обновлено"); }
-            else    { await sbInsert("services", payload);            toast("Добавлено"); }
+            else    { await sbInsert("services", payload); toast("Добавлено"); }
             closeModal();
             state.loaded.services = false;
             adminLoadServices();
@@ -1041,7 +1106,7 @@
         } catch(e) { toast("Ошибка", "error"); }
     };
 
-    // --- Builds ---
+    // --- Builds Admin (конфиг) ---
     async function adminLoadBuilds() {
         var el = $("#adminBuildsList");
         setLoading(el);
@@ -1052,55 +1117,48 @@
     }
 
     function adminRenderBuilds() {
-        var el = $("#adminBuildsList");
+        var el   = $("#adminBuildsList");
         var list = state.admin.builds;
-        if (!list.length) { el.innerHTML = '<div class="portfolio-empty"><p>Сборок нет</p></div>'; return; }
+        if (!list.length) { setEmpty(el, "ph-light ph-desktop-tower", "Сборок нет"); return; }
         var html = "";
         list.forEach(function(b) {
-            html +=
-                '<div class="admin-item">' +
+            html += '<div class="admin-item">' +
                 '<div class="admin-item-id">#' + b.id + '</div>' +
                 '<div class="admin-item-info">' +
-                '<div class="admin-item-title">' + esc(b.name) +
-                ' <span style="color:var(--accent2);font-size:0.7rem;">[' + esc(b.tier) + ']</span></div>' +
-                '<div class="admin-item-sub">' + esc(b.price_text) + '</div></div>' +
+                '<div class="admin-item-title">' + esc(b.name) + ' <span style="color:var(--accent-soft);font-size:0.65rem;">[' + esc(b.tier) + ']</span></div>' +
+                '<div class="admin-item-sub">' + esc(b.price_text) + '</div>' +
+                '</div>' +
                 '<div class="admin-item-actions">' +
                 '<button class="btn btn-ghost btn-sm" onclick="window._adminEditBuild(' + b.id + ')"><i class="ph-bold ph-pencil-simple"></i></button>' +
-                '<button class="btn btn-ghost btn-sm" style="color:var(--red,#e17055);" onclick="window._adminDeleteBuild(' + b.id + ')"><i class="ph-bold ph-trash"></i></button>' +
+                '<button class="btn btn-ghost btn-sm" style="color:#e17055;" onclick="window._adminDeleteBuild(' + b.id + ')"><i class="ph-bold ph-trash"></i></button>' +
                 '</div></div>';
         });
         el.innerHTML = html;
     }
 
-    function _buildForm(b) {
+    function _bldFormHtml(b) {
         b = b || {};
-        return (
-            '<div class="form-group"><label>Название *</label><input id="ae_bld_name" value="' + esc(b.name || "") + '" placeholder="Игровой ПК"></div>' +
-            '<div class="form-group"><label>Тип / Тег</label><input id="ae_bld_tier" value="' + esc(b.tier || "") + '" placeholder="Офис, Игры, Профи..."></div>' +
-            '<div class="form-group"><label>Описание</label><textarea id="ae_bld_desc" rows="3" placeholder="Краткое описание">' + esc(b.description || "") + '</textarea></div>' +
+        return '<div class="form-group"><label>Название *</label><input id="ae_bld_name" value="' + esc(b.name || "") + '" placeholder="Игровой ПК"></div>' +
+            '<div class="form-group"><label>Тег / Тип</label><input id="ae_bld_tier" value="' + esc(b.tier || "") + '" placeholder="Игры, Офис, Профи..."></div>' +
+            '<div class="form-group"><label>Описание</label><textarea id="ae_bld_desc" rows="2">' + esc(b.description || "") + '</textarea></div>' +
             '<div class="form-group"><label>Цена (число)</label><input type="number" id="ae_bld_price" value="' + (b.price || 0) + '"></div>' +
-            '<div class="form-group"><label>Цена (текст)</label><input id="ae_bld_pt" value="' + esc(b.price_text || "") + '" placeholder="от 40 000 руб."></div>'
-        );
+            '<div class="form-group"><label>Цена (текст)</label><input id="ae_bld_pt" value="' + esc(b.price_text || "") + '" placeholder="от 40 000 руб."></div>';
     }
 
     window._adminEditBuild = function(id) {
         var bld = state.admin.builds.find(function(b) { return b.id === id; });
         if (!bld) return;
-        openModal("Редактировать сборку",
-            _buildForm(bld) +
+        openModal("Редактировать сборку", _bldFormHtml(bld) +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveBuild(' + id + ')">Сохранить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
-        );
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminNewBuild = function() {
-        openModal("Новая сборка",
-            _buildForm() +
+        openModal("Новая конфиг-сборка", _bldFormHtml() +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveBuild(0)">Добавить</button>' +
-            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
-        );
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
     };
 
     window._adminSaveBuild = async function(id) {
@@ -1114,11 +1172,11 @@
         if (!payload.name) { toast("Введите название", "error"); return; }
         try {
             if (id) { await sbUpdate("builds", payload, "id", id); toast("Обновлено"); }
-            else    { await sbInsert("builds", payload);            toast("Добавлено"); }
+            else    { await sbInsert("builds", payload); toast("Добавлено"); }
             closeModal();
             state.loaded.builds = false;
             adminLoadBuilds();
-        } catch(e) { toast("Ошибка сохранения", "error"); }
+        } catch(e) { toast("Ошибка", "error"); }
     };
 
     window._adminDeleteBuild = async function(id) {
@@ -1131,7 +1189,97 @@
         } catch(e) { toast("Ошибка", "error"); }
     };
 
-    // --- Orders (Admin) ---
+    // --- Ready Builds Admin ---
+    async function adminLoadReadyBuilds() {
+        var el = $("#adminReadyList");
+        setLoading(el);
+        try {
+            state.admin.readyBuilds = await sbSelect("ready_builds", { order: "created_at", asc: false });
+            adminRenderReadyBuilds();
+        } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
+    }
+
+    function adminRenderReadyBuilds() {
+        var el   = $("#adminReadyList");
+        var list = state.admin.readyBuilds;
+        if (!list.length) { setEmpty(el, "ph-light ph-package", "Готовых сборок нет"); return; }
+        var statusLabels = { available: "В наличии", reserved: "Забронировано", sold: "Продано" };
+        var html = "";
+        list.forEach(function(b) {
+            html += '<div class="admin-item">' +
+                '<div class="admin-item-id">#' + b.id + '</div>' +
+                '<div class="admin-item-info">' +
+                '<div class="admin-item-title">' + esc(b.name) + '</div>' +
+                '<div class="admin-item-sub">' + (b.price ? fmt(b.price) + ' руб.' : 'По запросу') + ' · ' + (statusLabels[b.status] || b.status) + '</div>' +
+                '</div>' +
+                '<div class="admin-item-actions">' +
+                '<button class="btn btn-ghost btn-sm" onclick="window._adminEditReady(' + b.id + ')"><i class="ph-bold ph-pencil-simple"></i></button>' +
+                '<button class="btn btn-ghost btn-sm" style="color:#e17055;" onclick="window._adminDeleteReady(' + b.id + ')"><i class="ph-bold ph-trash"></i></button>' +
+                '</div></div>';
+        });
+        el.innerHTML = html;
+    }
+
+    function _readyFormHtml(b) {
+        b = b || {};
+        return '<div class="form-group"><label>Название *</label><input id="ae_rb_name" value="' + esc(b.name || "") + '" placeholder="RTX 4070 + Ryzen 5 7600X"></div>' +
+            '<div class="form-group"><label>Комплектация</label><textarea id="ae_rb_specs" rows="4" placeholder="CPU: ...\nGPU: ...\nRAM: ...">' + esc(b.specs || "") + '</textarea></div>' +
+            '<div class="form-group"><label>Описание</label><textarea id="ae_rb_desc" rows="2">' + esc(b.description || "") + '</textarea></div>' +
+            '<div class="form-group"><label>Цена (руб.)</label><input type="number" id="ae_rb_price" value="' + (b.price || "") + '" placeholder="150000"></div>' +
+            '<div class="form-group"><label>Ссылка на фото (URL)</label><input id="ae_rb_img" value="' + esc(b.image_url || "") + '" placeholder="https://..."></div>' +
+            '<div class="form-group"><label>Статус</label><select id="ae_rb_status">' +
+            '<option value="available"' + (b.status === "available" ? " selected" : "") + '>В наличии</option>' +
+            '<option value="reserved"'  + (b.status === "reserved"  ? " selected" : "") + '>Забронировано</option>' +
+            '<option value="sold"'      + (b.status === "sold"      ? " selected" : "") + '>Продано</option>' +
+            '</select></div>';
+    }
+
+    window._adminEditReady = function(id) {
+        var b = state.admin.readyBuilds.find(function(x) { return x.id === id; });
+        if (!b) return;
+        openModal("Редактировать готовую сборку", _readyFormHtml(b) +
+            '<div style="display:flex;gap:8px;margin-top:16px;">' +
+            '<button class="btn btn-primary" onclick="window._adminSaveReady(' + id + ')">Сохранить</button>' +
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+    };
+
+    window._adminNewReady = function() {
+        openModal("Новая готовая сборка", _readyFormHtml() +
+            '<div style="display:flex;gap:8px;margin-top:16px;">' +
+            '<button class="btn btn-primary" onclick="window._adminSaveReady(0)">Добавить</button>' +
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>');
+    };
+
+    window._adminSaveReady = async function(id) {
+        var payload = {
+            name:        ($("#ae_rb_name")   || {}).value || "",
+            specs:       ($("#ae_rb_specs")  || {}).value || "",
+            description: ($("#ae_rb_desc")   || {}).value || "",
+            price:       parseInt(($("#ae_rb_price") || {}).value) || null,
+            image_url:   ($("#ae_rb_img")    || {}).value || "",
+            status:      ($("#ae_rb_status") || {}).value || "available"
+        };
+        if (!payload.name) { toast("Введите название", "error"); return; }
+        try {
+            if (id) { await sbUpdate("ready_builds", payload, "id", id); toast("Обновлено"); }
+            else    { await sbInsert("ready_builds", Object.assign({ created_at: new Date().toISOString() }, payload)); toast("Добавлено"); }
+            closeModal();
+            state.loaded.readyBuilds = false;
+            adminLoadReadyBuilds();
+        } catch(e) { toast("Ошибка сохранения", "error"); }
+    };
+
+    window._adminDeleteReady = async function(id) {
+        if (!confirm("Удалить готовую сборку #" + id + "?")) return;
+        try {
+            await sbDelete("ready_builds", "id", id);
+            toast("Удалено");
+            state.loaded.readyBuilds = false;
+            adminLoadReadyBuilds();
+        } catch(e) { toast("Ошибка", "error"); }
+    };
+
+    // --- Orders Admin ---
     async function adminLoadOrders() {
         var el = $("#adminOrdersList");
         setLoading(el);
@@ -1144,20 +1292,16 @@
     function adminRenderOrders() {
         var el   = $("#adminOrdersList");
         var list = state.admin.orders;
-        if (!list.length) { el.innerHTML = '<div class="portfolio-empty"><p>Заказов нет</p></div>'; return; }
+        if (!list.length) { setEmpty(el, "ph-light ph-clipboard-text", "Заказов нет"); return; }
         var html = "";
         list.forEach(function(o) {
-            html +=
-                '<div class="admin-item" style="cursor:pointer" onclick="window._adminShowOrder(' + o.id + ')">' +
+            html += '<div class="admin-item" style="cursor:pointer" onclick="window._adminShowOrder(' + o.id + ')">' +
                 '<div class="admin-item-id">#' + o.id + '</div>' +
                 '<div class="admin-item-info">' +
-                '<div class="admin-item-title">' +
-                esc(TYPE_MAP[o.order_type] || o.order_type) + ' ' +
-                statusBadge(o.status) + '</div>' +
-                '<div class="admin-item-sub">' +
-                esc(o.contact_info || "—") + ' · ' + fmt(o.total_price) + ' руб. · ' + fmtDate(o.created_at) +
-                '</div></div>' +
-                '<i class="ph-bold ph-caret-right" style="color:var(--w30);flex-shrink:0;"></i>' +
+                '<div class="admin-item-title">' + esc(TYPE_MAP[o.order_type] || o.order_type) + ' ' + statusBadge(o.status) + '</div>' +
+                '<div class="admin-item-sub">' + esc(o.contact_info || "—") + ' · ' + fmt(o.total_price) + ' руб. · ' + fmtDate(o.created_at) + '</div>' +
+                '</div>' +
+                '<i class="ph-bold ph-caret-right" style="color:var(--w20);flex-shrink:0;"></i>' +
                 '</div>';
         });
         el.innerHTML = html;
@@ -1182,8 +1326,7 @@
         if (o.details) {
             html += '<div style="padding:12px;background:var(--surface3);border-radius:8px;border:1px solid var(--border);font-size:0.78rem;white-space:pre-wrap;color:var(--w60);margin-bottom:14px;">' + esc(o.details) + '</div>';
         }
-        html +=
-            '<div class="form-group"><label>Изменить статус</label><select id="ae_order_status">' + statusOpts + '</select></div>' +
+        html += '<div class="form-group"><label>Изменить статус</label><select id="ae_order_status">' + statusOpts + '</select></div>' +
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminChangeStatus(' + o.id + ')">Сохранить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Закрыть</button></div>';
@@ -1194,23 +1337,19 @@
         var status = ($("#ae_order_status") || {}).value;
         if (!status) return;
         try {
-            await sbUpdate("orders", {
-                status:     status,
-                updated_at: new Date().toISOString()
-            }, "id", id);
+            await sbUpdate("orders", { status: status, updated_at: new Date().toISOString() }, "id", id);
             toast("Статус обновлён");
             closeModal();
             adminLoadOrders();
         } catch(e) { toast("Ошибка", "error"); }
     };
 
-    // --- Portfolio (Admin) ---
+    // --- Portfolio Admin ---
     async function adminLoadPortfolio() {
         var el = $("#adminPortfolioList");
         setLoading(el);
         try {
-            var data = await sbSelect("portfolio", { order: "created_at", asc: false });
-            state.admin.portfolio = data;
+            state.admin.portfolio = await sbSelect("portfolio", { order: "created_at", asc: false });
             adminRenderPortfolio();
         } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
     }
@@ -1218,21 +1357,62 @@
     function adminRenderPortfolio() {
         var el   = $("#adminPortfolioList");
         var list = state.admin.portfolio;
-        if (!list.length) { el.innerHTML = '<div class="portfolio-empty"><p>Пусто</p></div>'; return; }
+        if (!list.length) { setEmpty(el, "ph-light ph-images", "Портфолио пусто"); return; }
         var html = "";
         list.forEach(function(it) {
             var url = portfolioUrl(it.filename);
-            html +=
-                '<div class="admin-item">' +
+            html += '<div class="admin-item">' +
                 '<img src="' + esc(url) + '" style="width:48px;height:48px;object-fit:cover;border-radius:8px;flex-shrink:0;">' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(it.title || "Без названия") + '</div>' +
-                '<div class="admin-item-sub">ID:' + it.id + ' · ' + esc(CATEGORY_LABELS[it.category] || it.category) + '</div></div>' +
-                '<button class="btn btn-ghost btn-sm" style="color:var(--red,#e17055);" onclick="window._adminDeletePortfolio(' + it.id + ')"><i class="ph-bold ph-trash"></i></button>' +
+                '<div class="admin-item-sub">ID:' + it.id + ' · ' + esc(CATEGORY_LABELS[it.category] || it.category) + '</div>' +
+                '</div>' +
+                '<button class="btn btn-ghost btn-sm" style="color:#e17055;" onclick="window._adminDeletePortfolio(' + it.id + ')"><i class="ph-bold ph-trash"></i></button>' +
                 '</div>';
         });
         el.innerHTML = html;
     }
+
+    window._adminAddPortfolio = function() {
+        openModal("Добавить в портфолио",
+            '<div class="form-group"><label>Ссылка на изображение (URL) *</label><input id="ae_p_url" placeholder="https://..."></div>' +
+            '<div class="form-group"><label>Название</label><input id="ae_p_title" placeholder="Игровая сборка RTX 4080"></div>' +
+            '<div class="form-group"><label>Описание</label><textarea id="ae_p_desc" rows="2"></textarea></div>' +
+            '<div class="form-group"><label>Категория</label><select id="ae_p_cat">' +
+            '<option value="build">Сборка</option>' +
+            '<option value="repair">Ремонт</option>' +
+            '<option value="upgrade">Апгрейд</option>' +
+            '<option value="custom">Кастом</option>' +
+            '<option value="general">Другое</option>' +
+            '</select></div>' +
+            '<div style="display:flex;gap:8px;margin-top:16px;">' +
+            '<button class="btn btn-primary" onclick="window._adminSavePortfolio()">Добавить</button>' +
+            '<button class="btn btn-ghost" onclick="closeModal()">Отмена</button></div>'
+        );
+    };
+
+    window._adminSavePortfolio = async function() {
+        var url      = ($("#ae_p_url")   || {}).value.trim();
+        var title    = ($("#ae_p_title") || {}).value.trim();
+        var desc     = ($("#ae_p_desc")  || {}).value.trim();
+        var category = ($("#ae_p_cat")   || {}).value || "general";
+        if (!url) { toast("Введите ссылку на фото", "error"); return; }
+        try {
+            await sbInsert("portfolio", {
+                filename:    url,
+                title:       title,
+                description: desc,
+                category:    category,
+                added_by:    state.userId,
+                created_at:  new Date().toISOString()
+            });
+            toast("Добавлено в портфолио");
+            closeModal();
+            state.portfolio = [];
+            state.loaded.portfolio = false;
+            adminLoadPortfolio();
+        } catch(e) { toast("Ошибка добавления", "error"); }
+    };
 
     window._adminDeletePortfolio = async function(id) {
         if (!confirm("Удалить работу #" + id + "?")) return;
@@ -1245,12 +1425,12 @@
         } catch(e) { toast("Ошибка", "error"); }
     };
 
-    // --- Users (Admin) ---
+    // --- Users Admin ---
     async function adminLoadUsers() {
         var el = $("#adminUsersList");
         setLoading(el);
         try {
-            state.admin.users = await sbSelect("users", { order: "created_at", asc: false });
+            state.admin.users = await sbSelect("users", { order: "last_active", asc: false });
             adminRenderUsers();
         } catch(e) { el.innerHTML = '<div class="portfolio-empty"><p>Ошибка</p></div>'; }
     }
@@ -1258,27 +1438,22 @@
     function adminRenderUsers() {
         var el   = $("#adminUsersList");
         var list = state.admin.users;
-        if (!list.length) { el.innerHTML = '<div class="portfolio-empty"><p>Нет пользователей</p></div>'; return; }
+        if (!list.length) { setEmpty(el, "ph-light ph-users", "Пользователей нет"); return; }
         var html = "";
         list.forEach(function(u) {
-            html +=
-                '<div class="admin-item">' +
-                '<div class="admin-item-id" style="font-size:0.65rem;">' + u.user_id + '</div>' +
+            html += '<div class="admin-item">' +
+                '<div class="admin-item-id" style="font-size:0.6rem;">' + u.user_id + '</div>' +
                 '<div class="admin-item-info">' +
                 '<div class="admin-item-title">' + esc(u.full_name || "—") + '</div>' +
-                '<div class="admin-item-sub">' +
-                '@' + esc(u.username || "—") +
-                (u.message_count ? ' · ' + u.message_count + ' сообщ.' : '') +
-                (u.last_active ? ' · ' + fmtDate(u.last_active) : '') +
-                '</div></div>' +
+                '<div class="admin-item-sub">@' + esc(u.username || "—") + ' · ' + fmtDate(u.last_active) + '</div>' +
+                '</div>' +
                 '<a href="tg://user?id=' + u.user_id + '" class="btn btn-ghost btn-sm"><i class="ph-bold ph-telegram-logo"></i></a>' +
                 '</div>';
         });
         el.innerHTML = html;
     }
 
-    // ==================== MODAL / VIEWER INIT ====================
-
+    // ==================== MODAL / VIEWER ====================
     function initModal() {
         var closeBtn = $("#modalClose");
         if (closeBtn) closeBtn.addEventListener("click", closeModal);
@@ -1308,8 +1483,6 @@
         });
     }
 
-    // ==================== KEYBOARD ====================
-
     function initKeyboard() {
         document.addEventListener("keydown", function(e) {
             if (e.key !== "Escape") return;
@@ -1320,8 +1493,6 @@
         });
     }
 
-    // ==================== BACK BUTTON ====================
-
     function initBackButton() {
         if (!tg || !tg.BackButton) return;
         tg.BackButton.onClick(function() {
@@ -1330,16 +1501,17 @@
         });
     }
 
-    // ==================== ADMIN BUTTONS ====================
-
     function initAdminButtons() {
         var map = {
             "#adminAddService":       function() { window._adminNewService(); },
             "#adminAddBuild":         function() { window._adminNewBuild(); },
+            "#adminAddReady":         function() { window._adminNewReady(); },
+            "#adminAddPortfolio":     function() { window._adminAddPortfolio(); },
             "#adminRefreshStats":     adminLoadStats,
             "#adminRefreshOrders":    adminLoadOrders,
             "#adminRefreshPortfolio": adminLoadPortfolio,
-            "#adminRefreshUsers":     adminLoadUsers
+            "#adminRefreshUsers":     adminLoadUsers,
+            "#adminRefreshReady":     adminLoadReadyBuilds
         };
         Object.keys(map).forEach(function(sel) {
             var el = $(sel);
@@ -1348,12 +1520,10 @@
     }
 
     // ==================== EXPOSE GLOBALS ====================
-    // Нужно для вызовов из onclick в HTML
     window.closeModal  = closeModal;
     window.closeViewer = closeViewer;
 
-    // ==================== MAIN INIT ====================
-
+    // ==================== MAIN ====================
     async function init() {
         initSplash();
         loadConfig();
