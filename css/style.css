@@ -2003,3 +2003,111 @@ body {
     .admin-tab { padding: 8px 10px; font-size: 0.65rem; }
     .nav-btn { padding: 6px 8px; font-size: 0.52rem; }
 }
+
+/* ==================== ABOUT / AGREEMENT ==================== */
+
+#section-about .info-card,
+#section-agreement .info-card {
+    margin-bottom: 10px;
+}
+
+/* Блок реквизитов */
+#aboutRequisitesBody {
+    display: flex;
+    flex-direction: column;
+}
+
+/* Соглашение — текст */
+#agreementText {
+    font-size: 0.82rem;
+    color: var(--w50, var(--w40));
+    line-height: 1.8;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+/* ==================== ADMIN SETTINGS ==================== */
+
+/* Панель настроек — поля без form-card обёртки */
+#a-settings .admin-card .form-group {
+    margin-bottom: 10px;
+}
+
+#a-settings .admin-card .form-group:last-child {
+    margin-bottom: 0;
+}
+
+#a-settings .admin-card input,
+#a-settings .admin-card select,
+#a-settings .admin-card textarea {
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    border-radius: var(--r);
+    padding: 12px 14px;
+    color: var(--w80);
+    font-size: 0.84rem;
+    font-family: var(--font);
+    outline: none;
+    width: 100%;
+    transition: border-color 0.2s var(--ease), box-shadow 0.2s;
+    -webkit-appearance: none;
+    appearance: none;
+    display: block;
+}
+
+#a-settings .admin-card input::placeholder,
+#a-settings .admin-card textarea::placeholder {
+    color: var(--w20);
+}
+
+#a-settings .admin-card input:focus,
+#a-settings .admin-card select:focus,
+#a-settings .admin-card textarea:focus {
+    border-color: var(--accent-border);
+    box-shadow: 0 0 0 3px var(--accent-glow2);
+}
+
+#a-settings .admin-card textarea {
+    resize: vertical;
+    min-height: 80px;
+    line-height: 1.5;
+}
+
+#a-settings .admin-card textarea#ci_agreement {
+    min-height: 220px;
+    font-family: var(--mono);
+    font-size: 0.78rem;
+}
+
+#a-settings .admin-card label {
+    font-size: 0.7rem;
+    color: var(--w40);
+    font-weight: 600;
+    letter-spacing: 0.3px;
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 6px;
+}
+
+/* Второй admin-card в настройках (соглашение) */
+#a-settings .admin-card + .admin-card {
+    margin-top: 12px;
+}
+
+/* ==================== UPLOAD AREA FIX ==================== */
+
+/* Фикс для инпута файла поверх всего */
+.upload-area {
+    position: relative;
+    overflow: hidden;
+}
+
+.upload-area input[type="file"] {
+    position: absolute;
+    inset: 0;
+    opacity: 0;
+    cursor: pointer;
+    width: 100%;
+    height: 100%;
+    z-index: 2;
+}
