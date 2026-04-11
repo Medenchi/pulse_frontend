@@ -105,9 +105,9 @@
                     <i class="ph-bold ph-hand-coins"></i>
                     <span>Скупка</span>
                 </div>
-                <div class="home-card" data-navigate="contacts">
-                    <i class="ph-bold ph-chat-circle-dots"></i>
-                    <span>Контакты</span>
+                <div class="home-card" data-navigate="about">
+                    <i class="ph-bold ph-info"></i>
+                    <span>О нас</span>
                 </div>
             </div>
 
@@ -150,14 +150,13 @@
             </form>
         </section>
 
-        <!-- ============================= BUILDS (конфигуратор) ============================= -->
+        <!-- ============================= BUILDS ============================= -->
         <section class="section" id="section-builds">
             <div class="page-title">
                 <h2>Сборки ПК</h2>
                 <p>Конфигуратор и индивидуальные проекты</p>
             </div>
 
-            <!-- Переключатель -->
             <div class="builds-switcher">
                 <button class="builds-switch-btn active" id="switchConfigurator">
                     <i class="ph-bold ph-sliders"></i>
@@ -169,7 +168,6 @@
                 </button>
             </div>
 
-            <!-- Конфигуратор -->
             <div id="configuratorSection">
                 <img src="assets/banner_builds.png" alt="" class="section-banner">
                 <div class="builds-list" id="buildsList">
@@ -186,7 +184,6 @@
                 </div>
             </div>
 
-            <!-- Готовые сборки -->
             <div id="readySection" class="hidden">
                 <div class="ready-builds-header">
                     <p class="ready-builds-sub">Собранные и протестированные ПК — готовы к отправке</p>
@@ -195,7 +192,6 @@
                     <div class="loading-spinner"></div>
                 </div>
             </div>
-
         </section>
 
         <!-- ============================= BUILD FORM ============================= -->
@@ -372,6 +368,14 @@
                     </div>
                     <i class="ph-bold ph-caret-right menu-arrow"></i>
                 </button>
+                <button class="menu-item" data-navigate="about">
+                    <div class="menu-icon"><i class="ph-bold ph-info"></i></div>
+                    <div class="menu-text">
+                        <h3>О компании</h3>
+                        <p>Реквизиты, ИНН, ОГРН, соглашение</p>
+                    </div>
+                    <i class="ph-bold ph-caret-right menu-arrow"></i>
+                </button>
             </div>
             <a href="#" class="home-contact-btn" data-admin-link target="_blank" style="margin-top:12px;">
                 <i class="ph-bold ph-telegram-logo"></i>
@@ -379,7 +383,7 @@
             </a>
         </section>
 
-        <!-- ============================= READY BUILDS (отдельная секция) ============================= -->
+        <!-- ============================= READY BUILDS ============================= -->
         <section class="section" id="section-ready-builds">
             <div class="sub-header">
                 <button class="back-btn" data-navigate="more">
@@ -474,7 +478,6 @@
                 <h2>Оплата и доставка</h2>
             </div>
             <img src="assets/banner_delivery.png" alt="" class="section-banner">
-
             <div class="info-card">
                 <h3>Способы оплаты</h3>
                 <ul class="clean-list">
@@ -554,6 +557,109 @@
             </div>
         </section>
 
+        <!-- ============================= О НАС ============================= -->
+        <section class="section" id="section-about">
+            <div class="sub-header">
+                <button class="back-btn" data-navigate="more">
+                    <i class="ph-bold ph-arrow-left"></i>
+                </button>
+                <h2>О компании</h2>
+            </div>
+
+            <!-- Логотип и название -->
+            <div style="text-align:center;padding:24px 16px 16px;">
+                <img src="assets/logo.png" alt="Pulse Computers"
+                     style="width:80px;height:80px;object-fit:contain;
+                            border-radius:20px;margin-bottom:12px;">
+                <h2 id="aboutName"
+                    style="font-size:1.3rem;font-weight:800;color:var(--w95);margin:0;">
+                    Pulse Computers
+                </h2>
+                <p style="font-size:0.85rem;color:var(--w40);margin-top:6px;">
+                    Сборка. Ремонт. Кастомизация.
+                </p>
+            </div>
+
+            <!-- Описание -->
+            <div class="info-card">
+                <h3>Кто мы</h3>
+                <p id="aboutDescription"
+                   style="color:var(--w50);font-size:0.85rem;line-height:1.7;margin-top:8px;">
+                    Pulse Computers — команда профессионалов в Краснодаре.
+                    Занимаемся сборкой игровых и рабочих ПК, ремонтом и обслуживанием
+                    компьютерной техники, кастомизацией и индивидуальными проектами,
+                    а также скупкой б/у устройств.
+                </p>
+            </div>
+
+            <!-- Преимущества -->
+            <div class="info-card">
+                <h3>Наши преимущества</h3>
+                <ul class="clean-list" style="margin-top:10px;">
+                    <li><i class="ph-bold ph-shield-check"></i> Гарантия на все работы</li>
+                    <li><i class="ph-bold ph-clock"></i> Быстрые сроки выполнения</li>
+                    <li><i class="ph-bold ph-truck"></i> Доставка по всей России (СДЭК)</li>
+                    <li><i class="ph-bold ph-percent"></i> Рассрочка и оплата долями</li>
+                    <li><i class="ph-bold ph-star"></i> Индивидуальный подход</li>
+                    <li><i class="ph-bold ph-chat-circle-dots"></i> Поддержка 7 дней в неделю</li>
+                </ul>
+            </div>
+
+            <!-- Реквизиты — подгружаются из БД -->
+            <div class="info-card">
+                <h3>Реквизиты</h3>
+                <div id="aboutRequisitesBody"
+                     style="margin-top:10px;">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+
+            <!-- Соглашение — кнопка-ссылка -->
+            <button class="menu-item" data-navigate="agreement"
+                    style="width:100%;margin-top:4px;">
+                <div class="menu-icon">
+                    <i class="ph-bold ph-file-text"></i>
+                </div>
+                <div class="menu-text">
+                    <h3>Пользовательское соглашение</h3>
+                    <p>Условия использования сервиса</p>
+                </div>
+                <i class="ph-bold ph-caret-right menu-arrow"></i>
+            </button>
+
+            <!-- Кнопки связи -->
+            <div style="display:flex;flex-direction:column;gap:8px;
+                        margin-top:12px;padding-bottom:8px;">
+                <a href="#" class="btn btn-primary btn-block"
+                   data-manager-link target="_blank">
+                    <i class="ph-bold ph-chat-circle-dots"></i>
+                    Написать менеджеру
+                </a>
+                <a href="#" class="btn btn-ghost btn-block"
+                   data-taplink target="_blank">
+                    <i class="ph-bold ph-link"></i>
+                    Все контакты
+                </a>
+            </div>
+        </section>
+
+        <!-- ============================= СОГЛАШЕНИЕ ============================= -->
+        <section class="section" id="section-agreement">
+            <div class="sub-header">
+                <button class="back-btn" data-navigate="about">
+                    <i class="ph-bold ph-arrow-left"></i>
+                </button>
+                <h2>Пользовательское соглашение</h2>
+            </div>
+            <div class="info-card">
+                <div id="agreementText"
+                     style="font-size:0.82rem;color:var(--w50);
+                            line-height:1.8;white-space:pre-wrap;">
+                    <div class="loading-spinner"></div>
+                </div>
+            </div>
+        </section>
+
         <!-- ============================= ADMIN ============================= -->
         <section class="section" id="section-admin">
             <div class="page-title">
@@ -582,6 +688,9 @@
                 </button>
                 <button class="admin-tab" data-atab="a-users">
                     <i class="ph-bold ph-users"></i> Клиенты
+                </button>
+                <button class="admin-tab" data-atab="a-settings">
+                    <i class="ph-bold ph-gear"></i> Настройки
                 </button>
             </div>
 
@@ -698,6 +807,73 @@
                         <div class="loading-spinner"></div>
                     </div>
                 </div>
+            </div>
+
+            <!-- Settings -->
+            <div class="admin-panel" id="a-settings">
+
+                <!-- Реквизиты -->
+                <div class="admin-card">
+                    <div class="admin-card-head">
+                        <h3>Реквизиты компании</h3>
+                        <button class="btn btn-primary btn-sm" id="adminSaveCompany">
+                            <i class="ph-bold ph-floppy-disk"></i> Сохранить
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>Название (публичное)</label>
+                        <input id="ci_name" placeholder="Pulse Computers">
+                    </div>
+                    <div class="form-group">
+                        <label>Юридическое наименование</label>
+                        <input id="ci_legal_name" placeholder="ИП Иванов Иван Иванович">
+                    </div>
+                    <div class="form-group">
+                        <label>ИНН</label>
+                        <input id="ci_inn" placeholder="1234567890">
+                    </div>
+                    <div class="form-group">
+                        <label>ОГРН / ОГРНИП</label>
+                        <input id="ci_ogrn" placeholder="1234567890123">
+                    </div>
+                    <div class="form-group">
+                        <label>Адрес</label>
+                        <input id="ci_address" placeholder="г. Краснодар, ул. ...">
+                    </div>
+                    <div class="form-group">
+                        <label>Режим работы</label>
+                        <input id="ci_work_hours" placeholder="Пн–Вс, 9:00–21:00">
+                    </div>
+                    <div class="form-group">
+                        <label>Телефон</label>
+                        <input id="ci_phone" placeholder="+7 (999) 123-45-67">
+                    </div>
+                    <div class="form-group">
+                        <label>Email</label>
+                        <input id="ci_email" placeholder="info@pulse.ru">
+                    </div>
+                    <div class="form-group">
+                        <label>Описание компании</label>
+                        <textarea id="ci_description" rows="4"
+                            placeholder="Расскажите о компании..."></textarea>
+                    </div>
+                </div>
+
+                <!-- Соглашение -->
+                <div class="admin-card" style="margin-top:12px;">
+                    <div class="admin-card-head">
+                        <h3>Пользовательское соглашение</h3>
+                        <button class="btn btn-primary btn-sm" id="adminSaveAgreement">
+                            <i class="ph-bold ph-floppy-disk"></i> Сохранить
+                        </button>
+                    </div>
+                    <div class="form-group">
+                        <label>Текст соглашения</label>
+                        <textarea id="ci_agreement" rows="14"
+                            placeholder="Текст пользовательского соглашения..."></textarea>
+                    </div>
+                </div>
+
             </div>
 
         </section>
