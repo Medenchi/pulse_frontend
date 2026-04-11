@@ -34,11 +34,13 @@
         username: "",
         fullName: "",
         isAdmin: false,
+        companyInfo: null,
         loaded: {
             services:     false,
             builds:       false,
             readyBuilds:  false,
-            portfolio:    false
+            portfolio:    false,
+            companyInfo:  false
         },
         config: {
             bot_username:        "PulseComputersShop_bot",
@@ -71,7 +73,8 @@
     }
 
     // ==================== CONSTANTS ====================
-    var TABS = ["home", "services", "builds", "ready-builds", "portfolio", "more", "admin"];
+    var TABS = ["home", "services", "builds", "ready-builds", "portfolio",
+                "more", "admin", "about", "agreement"];
 
     var CATEGORY_LABELS = {
         build:   "Сборка",
@@ -285,8 +288,10 @@
         if (id === "builds"       && !state.loaded.builds)      loadBuilds();
         if (id === "ready-builds" && !state.loaded.readyBuilds) loadReadyBuilds();
         if (id === "portfolio"    && !state.loaded.portfolio)   loadPortfolio();
-        if (id === "orders")  loadOrders();
-        if (id === "admin")   adminLoadTab(state.admin.currentTab);
+        if (id === "orders")    loadOrders();
+        if (id === "admin")     adminLoadTab(state.admin.currentTab);
+        if (id === "about")     loadAbout();
+        if (id === "agreement") loadAgreement();
 
         updateBackButton();
     }
@@ -299,15 +304,17 @@
 
     function getBackTarget() {
         var map = {
-            "service-form":  "services",
-            "build-form":    "builds",
-            "ready-builds":  "more",
-            "buyout":        "more",
-            "products":      "more",
-            "delivery":      "more",
-            "orders":        "more",
-            "contacts":      "more",
-            "admin":         "home"
+            "service-form": "services",
+            "build-form":   "builds",
+            "ready-builds": "more",
+            "buyout":       "more",
+            "products":     "more",
+            "delivery":     "more",
+            "orders":       "more",
+            "contacts":     "more",
+            "about":        "more",
+            "agreement":    "about",
+            "admin":        "home"
         };
         return map[state.current] || "home";
     }
@@ -522,7 +529,7 @@
         });
     }
 
-    // ==================== BUILDS (конфигуратор) ====================
+    // ==================== BUILDS ====================
     async function loadBuilds() {
         var el = $("#buildsList");
         setLoading(el);
@@ -729,7 +736,6 @@
     function renderReadyBuilds() {
         var list    = state.readyBuilds;
         var targets = ["#readyBuildsList", "#readyBuildsListFull"];
-
         targets.forEach(function(sel) {
             var el = $(sel);
             if (!el) return;
@@ -743,7 +749,6 @@
                 var statusClass = b.status === "available" ? "rb-status-available" : b.status === "reserved" ? "rb-status-reserved" : "rb-status-sold";
                 html +=
                     '<div class="rb-card" data-rbi="' + i + '">' +
-                    // ✅ ОБНОВЛЕНО: фото с плейсхолдером
                     (b.image_url
                         ? '<div class="rb-img-wrap"><img src="' + esc(b.image_url) + '" alt="' + esc(b.name) + '" loading="lazy"></div>'
                         : '<div class="rb-img-placeholder"><i class="ph-light ph-image-broken"></i><span>Фото скоро появится — мы работаем над этим 📸</span></div>'
@@ -763,7 +768,6 @@
                     '</div></div></div>';
             });
             el.innerHTML = html;
-
             el.querySelectorAll(".rb-card").forEach(function(card) {
                 card.addEventListener("click", function(e) {
                     if (e.target.closest(".rb-order-btn")) return;
@@ -975,7 +979,6 @@
         if (order.total_price > 0) fields.push(["Сумма", fmt(order.total_price) + "\u00a0руб."]);
         fields.push(["Создан", fmtDate(order.created_at)]);
         if (order.contact_info) fields.push(["Контакт", order.contact_info]);
-
         var html = '<div style="margin-bottom:16px;">' + statusBadge(order.status) + '</div>';
         fields.forEach(function(f) {
             html +=
@@ -1014,6 +1017,178 @@
         });
     }
 
+    // ==================== COMPANY INFO ====================
+    async function loadCompanyInfo() {
+        try {
+            var r = await db.from("company_info").select("*").eq("id", 1).single();
+            if (r.error || !r.data) {
+                state.companyInfo = {};
+            } else {
+                state.companyInfo = r.data;
+            }
+            state.loaded.companyInfo = true;
+        } catch(e) {
+            console.error("loadCompanyInfo:", e);
+            state.companyInfo = {};
+        }
+    }
+
+    function loadAbout() {
+        if (!state.loaded.companyInfo) {
+            // Ещё не загружено — загружаем и рендерим
+            loadCompanyInfo().then(function() { renderAbout(); });
+        } else {
+            renderAbout();
+        }
+    }
+
+    function renderAbout() {
+        var c = state.companyInfo || {};
+
+        // Название
+        var nameEl = $("#aboutName");
+        if (nameEl && c.name) nameEl.textContent = c.name;
+
+        // Описание
+        var descEl = $("#aboutDescription");
+        if (descEl && c.description) descEl.textContent = c.description;
+
+        // Реквизиты
+        var body = $("#aboutRequisitesBody");
+        if (!body) return;
+
+        var rows = [
+            ["Наименование",  c.legal_name],
+            ["ИНН",           c.inn],
+            ["ОГРН / ОГРНИП", c.ogrn],
+            ["Адрес",         c.address],
+            ["Телефон",       c.phone],
+            ["Email",         c.email],
+            ["Режим работы",  c.work_hours]
+        ];
+
+        var html    = "";
+        var hasAny  = false;
+        var lastIdx = -1;
+
+        // Найдём последний непустой
+        rows.forEach(function(row, idx) { if (row[1]) lastIdx = idx; });
+
+        rows.forEach(function(row, idx) {
+            if (!row[1]) return;
+            hasAny = true;
+            var isLast = (idx === lastIdx);
+            html +=
+                '<div style="display:flex;justify-content:space-between;align-items:center;' +
+                'padding:10px 0;' + (!isLast ? 'border-bottom:1px solid var(--border);' : '') + '">' +
+                '<span style="font-size:0.78rem;color:var(--w40);flex-shrink:0;">' + esc(row[0]) + '</span>' +
+                '<span style="font-size:0.82rem;font-weight:600;color:var(--w80);' +
+                'text-align:right;max-width:60%;word-break:break-all;">' + esc(row[1]) + '</span>' +
+                '</div>';
+        });
+
+        body.innerHTML = hasAny
+            ? html
+            : '<p style="color:var(--w30);font-size:0.8rem;padding:8px 0;">Данные скоро появятся</p>';
+    }
+
+    function loadAgreement() {
+        var el = $("#agreementText");
+        if (!el) return;
+
+        if (!state.loaded.companyInfo) {
+            setLoading(el);
+            loadCompanyInfo().then(function() { renderAgreement(); });
+        } else {
+            renderAgreement();
+        }
+    }
+
+    function renderAgreement() {
+        var el = $("#agreementText");
+        if (!el) return;
+        var text = (state.companyInfo && state.companyInfo.agreement) || "";
+        if (!text) {
+            el.innerHTML =
+                '<div class="portfolio-empty">' +
+                '<i class="ph-light ph-file-text"></i>' +
+                '<p>Соглашение пока не добавлено</p>' +
+                '<span style="font-size:0.75rem;color:var(--w30);">Администратор добавит его в ближайшее время</span>' +
+                '</div>';
+            return;
+        }
+        el.textContent = text;
+    }
+
+    // ==================== ADMIN SETTINGS ====================
+    async function adminLoadSettings() {
+        try {
+            var r = await db.from("company_info").select("*").eq("id", 1).single();
+            if (r.error || !r.data) return;
+            var c = r.data;
+            var fields = {
+                "#ci_name":        c.name,
+                "#ci_legal_name":  c.legal_name,
+                "#ci_inn":         c.inn,
+                "#ci_ogrn":        c.ogrn,
+                "#ci_address":     c.address,
+                "#ci_work_hours":  c.work_hours,
+                "#ci_phone":       c.phone,
+                "#ci_email":       c.email,
+                "#ci_description": c.description,
+                "#ci_agreement":   c.agreement
+            };
+            Object.keys(fields).forEach(function(sel) {
+                var el = $(sel);
+                if (el) el.value = fields[sel] || "";
+            });
+            // Обновляем кэш
+            state.companyInfo       = c;
+            state.loaded.companyInfo = true;
+        } catch(e) { console.error("adminLoadSettings:", e); }
+    }
+
+    async function adminSaveCompany() {
+        var payload = {
+            name:        ($("#ci_name")        || {}).value || "",
+            legal_name:  ($("#ci_legal_name")  || {}).value || "",
+            inn:         ($("#ci_inn")         || {}).value || "",
+            ogrn:        ($("#ci_ogrn")        || {}).value || "",
+            address:     ($("#ci_address")     || {}).value || "",
+            work_hours:  ($("#ci_work_hours")  || {}).value || "",
+            phone:       ($("#ci_phone")       || {}).value || "",
+            email:       ($("#ci_email")       || {}).value || "",
+            description: ($("#ci_description") || {}).value || "",
+            updated_at:  new Date().toISOString()
+        };
+        try {
+            await db.from("company_info").upsert(Object.assign({ id: 1 }, payload));
+            toast("Реквизиты сохранены!", "success");
+            // Сбрасываем кэш чтобы следующий заход на "О нас" перезагрузил
+            state.companyInfo        = Object.assign(state.companyInfo || {}, payload);
+            state.loaded.companyInfo = true;
+        } catch(e) {
+            console.error(e);
+            toast("Ошибка сохранения", "error");
+        }
+    }
+
+    async function adminSaveAgreement() {
+        var text = ($("#ci_agreement") || {}).value || "";
+        try {
+            await db.from("company_info").upsert({
+                id:         1,
+                agreement:  text,
+                updated_at: new Date().toISOString()
+            });
+            toast("Соглашение сохранено!", "success");
+            if (state.companyInfo) state.companyInfo.agreement = text;
+        } catch(e) {
+            console.error(e);
+            toast("Ошибка сохранения", "error");
+        }
+    }
+
     // ================================================================
     //  ADMIN PANEL
     // ================================================================
@@ -1027,7 +1202,8 @@
             "a-ready":     adminLoadReadyBuilds,
             "a-orders":    adminLoadOrders,
             "a-portfolio": adminLoadPortfolio,
-            "a-users":     adminLoadUsers
+            "a-users":     adminLoadUsers,
+            "a-settings":  adminLoadSettings
         };
         if (loaders[tabId]) loaders[tabId]();
     }
@@ -1060,9 +1236,9 @@
                 sbSelect("services",     { count: true }),
                 sbSelect("builds",       { count: true }),
                 sbSelect("ready_builds", { count: true }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing").then(function(r) { return r.count || 0; }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r)  { return r.count || 0; }),
-                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "in_progress").then(function(r){ return r.count || 0; })
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "processing").then(function(r)  { return r.count || 0; }),
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "completed").then(function(r)   { return r.count || 0; }),
+                db.from("orders").select("*", { count: "exact", head: true }).eq("status", "in_progress").then(function(r) { return r.count || 0; })
             ]);
             el.innerHTML =
                 adminStat("Пользователей",  results[0], "ph-bold ph-users") +
@@ -1294,7 +1470,6 @@
         el.innerHTML = html;
     }
 
-    // ✅ ОБНОВЛЕНО: форма с загрузкой файла вместо URL
     function _readyFormHtml(b) {
         b = b || {};
         var hasImg = b.image_url || "";
@@ -1323,6 +1498,25 @@
             '</select></div>';
     }
 
+    function _attachReadyPreview() {
+        setTimeout(function() {
+            var input   = $("#readyFileInput");
+            var preview = $("#readyPreview");
+            var prevImg = $("#readyPreviewImg");
+            if (!input) return;
+            input.addEventListener("change", function() {
+                var file = this.files[0];
+                if (!file) return;
+                var reader = new FileReader();
+                reader.onload = function(e) {
+                    prevImg.src = e.target.result;
+                    if (preview) preview.classList.remove("hidden");
+                };
+                reader.readAsDataURL(file);
+            });
+        }, 60);
+    }
+
     window._adminEditReady = function(id) {
         var b = state.admin.readyBuilds.find(function(x) { return x.id === id; });
         if (!b) return;
@@ -1331,23 +1525,7 @@
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(' + id + ')">Сохранить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
-        // Вешаем превью после рендера
-        setTimeout(function() {
-            var input   = $("#readyFileInput");
-            var preview = $("#readyPreview");
-            var prevImg = $("#readyPreviewImg");
-            if (!input) return;
-            input.addEventListener("change", function() {
-                var file = this.files[0];
-                if (!file) return;
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    prevImg.src = e.target.result;
-                    if (preview) preview.classList.remove("hidden");
-                };
-                reader.readAsDataURL(file);
-            });
-        }, 60);
+        _attachReadyPreview();
     };
 
     window._adminNewReady = function() {
@@ -1356,26 +1534,9 @@
             '<div style="display:flex;gap:8px;margin-top:16px;">' +
             '<button class="btn btn-primary" onclick="window._adminSaveReady(0)">Добавить</button>' +
             '<button class="btn btn-ghost"   onclick="closeModal()">Отмена</button></div>');
-        // Вешаем превью после рендера
-        setTimeout(function() {
-            var input   = $("#readyFileInput");
-            var preview = $("#readyPreview");
-            var prevImg = $("#readyPreviewImg");
-            if (!input) return;
-            input.addEventListener("change", function() {
-                var file = this.files[0];
-                if (!file) return;
-                var reader = new FileReader();
-                reader.onload = function(e) {
-                    prevImg.src = e.target.result;
-                    if (preview) preview.classList.remove("hidden");
-                };
-                reader.readAsDataURL(file);
-            });
-        }, 60);
+        _attachReadyPreview();
     };
 
-    // ✅ ОБНОВЛЕНО: сохранение с загрузкой в Storage
     window._adminSaveReady = async function(id) {
         var input       = $("#readyFileInput");
         var file        = input && input.files && input.files[0];
@@ -1530,7 +1691,6 @@
         el.innerHTML = html;
     }
 
-    // ✅ ОБНОВЛЕНО: загрузка через Storage
     window._adminAddPortfolio = function() {
         openModal("Добавить в портфолио",
             '<div class="form-group"><label>Фото *</label>' +
@@ -1576,7 +1736,6 @@
         }, 60);
     };
 
-    // ✅ ОБНОВЛЕНО: сохранение портфолио через Storage
     window._adminSavePortfolio = async function() {
         var input    = $("#portfolioFileInput");
         var title    = ($("#ae_p_title") || {}).value.trim();
@@ -1713,7 +1872,9 @@
             "#adminRefreshOrders":    adminLoadOrders,
             "#adminRefreshPortfolio": adminLoadPortfolio,
             "#adminRefreshUsers":     adminLoadUsers,
-            "#adminRefreshReady":     adminLoadReadyBuilds
+            "#adminRefreshReady":     adminLoadReadyBuilds,
+            "#adminSaveCompany":      adminSaveCompany,
+            "#adminSaveAgreement":    adminSaveAgreement
         };
         Object.keys(map).forEach(function(sel) {
             var el = $(sel);
@@ -1742,6 +1903,8 @@
         initAdminTabs();
         initAdminButtons();
         updateBackButton();
+        // Грузим инфо о компании в фоне при старте
+        loadCompanyInfo();
     }
 
     if (document.readyState === "loading") {
