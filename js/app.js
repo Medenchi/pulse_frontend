@@ -43,8 +43,8 @@
             companyInfo:  false
         },
         config: {
-            bot_username:        "PulseComputersShop_bot",
-            manager_deeplink:    "https://t.me/PulseComputersShop_bot?start=manager",
+            bot_username:        "PulseComputersBot",
+            manager_deeplink:    "https://t.me/PulseComputersBot?start=manager",
             admin_personal_link: "https://t.me/Pulse_Gadgets1",
             taplink_url:         "https://pulsegadgets.taplink.ws"
         },
