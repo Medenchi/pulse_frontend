@@ -302,6 +302,16 @@
                 <h2>Портфолио</h2>
                 <p>Наши готовые работы</p>
             </div>
+            <div class="portfolio-search-wrap">
+                <i class="ph-light ph-magnifying-glass portfolio-search-ico"></i>
+                <input type="text" id="portfolioSearch"
+                       class="portfolio-search"
+                       placeholder="Поиск: Ryzen, RTX, MacBook, апгрейд…"
+                       autocomplete="off">
+                <button class="portfolio-search-clear hidden" id="portfolioSearchClear" type="button" aria-label="Очистить">
+                    <i class="ph-bold ph-x"></i>
+                </button>
+            </div>
             <div class="filter-bar" id="portfolioFilter">
                 <button class="chip active" data-filter="all">Все</button>
                 <button class="chip" data-filter="build">Сборки</button>
@@ -309,9 +319,13 @@
                 <button class="chip" data-filter="upgrade">Апгрейд</button>
                 <button class="chip" data-filter="custom">Кастом</button>
             </div>
+            <div class="filter-bar tags-bar hidden" id="portfolioTags"></div>
             <div class="portfolio-grid" id="portfolioGrid">
                 <div class="loading-spinner" style="grid-column:1/-1;"></div>
             </div>
+            <button class="btn btn-ghost portfolio-load-more hidden" id="portfolioLoadMore" type="button">
+                Показать ещё
+            </button>
         </section>
 
         <!-- ============================= MORE ============================= -->
@@ -901,14 +915,23 @@
     <button class="viewer-x" id="viewerClose">
         <i class="ph-bold ph-x"></i>
     </button>
-    <div class="viewer-img-wrap">
+    <div class="viewer-img-wrap" id="viewerImgWrap">
+        <button class="viewer-nav viewer-prev hidden" id="viewerPrev" type="button" aria-label="Предыдущее">
+            <i class="ph-bold ph-caret-left"></i>
+        </button>
         <img id="viewerImage" src="" alt="">
+        <button class="viewer-nav viewer-next hidden" id="viewerNext" type="button" aria-label="Следующее">
+            <i class="ph-bold ph-caret-right"></i>
+        </button>
+        <span class="viewer-counter hidden" id="viewerCounter"></span>
     </div>
     <div class="viewer-info hidden" id="viewerInfo">
         <div class="viewer-info-inner">
             <span class="viewer-cat" id="viewerCategory"></span>
+            <span class="viewer-date" id="viewerDate"></span>
             <h3 class="viewer-title" id="viewerTitle"></h3>
             <p class="viewer-desc" id="viewerDescription"></p>
+            <div class="viewer-tags hidden" id="viewerTags"></div>
         </div>
     </div>
 </div>
