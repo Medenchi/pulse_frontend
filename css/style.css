@@ -1276,6 +1276,128 @@ body {
     margin-top: 3px;
 }
 
+.p-card-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 3px;
+    margin-top: 4px;
+}
+
+.p-card-tag {
+    display: inline-block;
+    font-size: 0.55rem;
+    font-weight: 600;
+    color: rgba(255,255,255,0.85);
+    background: rgba(0,0,0,0.45);
+    padding: 2px 6px;
+    border-radius: var(--r-full);
+    line-height: 1.2;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.p-card-badge {
+    position: absolute;
+    top: 6px;
+    right: 6px;
+    background: rgba(0,0,0,0.62);
+    color: #fff;
+    font-size: 0.62rem;
+    font-weight: 700;
+    padding: 3px 8px;
+    border-radius: var(--r-full);
+    display: inline-flex;
+    align-items: center;
+    gap: 3px;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+}
+
+.p-card-badge i { font-size: 0.7rem; }
+
+/* Поиск по портфолио */
+.portfolio-search-wrap {
+    position: relative;
+    margin-bottom: 10px;
+}
+
+.portfolio-search {
+    width: 100%;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--white);
+    font-family: var(--font);
+    font-size: 0.82rem;
+    padding: 10px 36px 10px 36px;
+    border-radius: var(--r);
+    outline: none;
+    transition: border-color 0.15s;
+}
+
+.portfolio-search:focus {
+    border-color: var(--accent);
+}
+
+.portfolio-search-ico {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    color: var(--w40);
+    font-size: 1rem;
+    pointer-events: none;
+}
+
+.portfolio-search-clear {
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 26px;
+    height: 26px;
+    background: var(--surface2);
+    border: none;
+    color: var(--w40);
+    border-radius: 50%;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    font-size: 0.85rem;
+}
+
+.portfolio-search-clear:active { background: var(--accent); color: #fff; }
+
+/* Бар тегов под основными чипами */
+.tags-bar {
+    margin-bottom: 10px;
+    opacity: 0.95;
+}
+
+.tags-bar .chip {
+    font-size: 0.65rem;
+    padding: 5px 12px;
+}
+
+.tags-bar .tag-count {
+    margin-left: 4px;
+    font-size: 0.6rem;
+    color: var(--w30);
+    font-weight: 500;
+}
+
+.tags-bar .chip.active .tag-count { color: rgba(255,255,255,0.7); }
+
+/* «Показать ещё» */
+.portfolio-load-more {
+    width: 100%;
+    margin-top: 14px;
+    padding: 12px;
+    font-weight: 600;
+}
+
 .portfolio-empty {
     grid-column: 1 / -1;
     text-align: center;
@@ -1710,6 +1832,7 @@ body {
     min-height: 0;
     overflow: hidden;
     padding: 52px 10px 0;
+    position: relative;
 }
 
 .viewer-img-wrap img {
@@ -1719,6 +1842,50 @@ body {
     border-radius: 8px;
     user-select: none;
     -webkit-user-select: none;
+}
+
+/* Кнопки prev/next в галерее альбома */
+.viewer-nav {
+    position: absolute;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    color: #fff;
+    font-size: 1.4rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    z-index: 5;
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    transition: background 0.15s, opacity 0.15s;
+}
+
+.viewer-nav:active   { background: rgba(255,255,255,0.18); }
+.viewer-nav:disabled { opacity: 0.32; cursor: default; }
+
+.viewer-prev { left: 14px; }
+.viewer-next { right: 14px; }
+
+.viewer-counter {
+    position: absolute;
+    top: 14px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: rgba(0,0,0,0.55);
+    color: #fff;
+    padding: 5px 12px;
+    border-radius: var(--r-full);
+    font-size: 0.75rem;
+    font-weight: 600;
+    z-index: 5;
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
 }
 
 .viewer-info {
@@ -1766,6 +1933,39 @@ body {
     margin: 0;
     white-space: pre-wrap;
 }
+
+.viewer-date {
+    display: inline-block;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.35);
+    margin-left: 6px;
+    margin-bottom: 10px;
+}
+
+.viewer-date.hidden { display: none; }
+
+.viewer-tags {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 5px;
+    margin-top: 14px;
+}
+
+.viewer-tags.hidden { display: none; }
+
+.viewer-tag {
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.1);
+    color: rgba(255,255,255,0.7);
+    padding: 5px 11px;
+    border-radius: var(--r-full);
+    font-size: 0.7rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background 0.15s, color 0.15s;
+}
+
+.viewer-tag:hover { background: rgba(198,40,40,0.18); color: #fff; }
 
 /* ==================== TOAST ==================== */
 

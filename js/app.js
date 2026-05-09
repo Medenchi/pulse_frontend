@@ -29,6 +29,11 @@
         readyBuilds: [],
         portfolio: [],
         portfolioFilter: "all",
+        portfolioTagFilter: null,
+        portfolioSearch: "",
+        portfolioPageSize: 60,
+        portfolioVisible: 60,
+        portfolioViewer: null, // {item, idx}
         orders: [],
         userId: 0,
         username: "",
@@ -171,18 +176,108 @@
         }, 200);
     }
 
+    function _portfolioGalleryUrls(item) {
+        // Главное фото + extra_files. extra_files — массив объектов {filename:"..."}
+        // (как пишет бэкап-скрипт и real-time хендлер).
+        var urls = [item.url || portfolioUrl(item.filename)];
+        var extra = item.extra_files;
+        if (extra && typeof extra === "string") {
+            try { extra = JSON.parse(extra); } catch (e) { extra = []; }
+        }
+        if (Array.isArray(extra)) {
+            extra.forEach(function(f) {
+                if (!f) return;
+                var fn = (typeof f === "string") ? f : (f.filename || f.url || "");
+                if (fn) urls.push(portfolioUrl(fn));
+            });
+        }
+        return urls.filter(function(u) { return !!u; });
+    }
+
+    function _formatPubDate(iso) {
+        if (!iso) return "";
+        try {
+            var d = new Date(iso);
+            if (isNaN(d.getTime())) return "";
+            return d.toLocaleDateString("ru-RU", { day: "numeric", month: "long", year: "numeric" });
+        } catch (e) { return ""; }
+    }
+
+    function _renderViewerGalleryStep() {
+        var st = state.portfolioViewer;
+        if (!st) return;
+        var img = $("#viewerImage");
+        img.src = st.urls[st.idx] || "";
+        var prev = $("#viewerPrev");
+        var next = $("#viewerNext");
+        var counter = $("#viewerCounter");
+        if (st.urls.length > 1) {
+            prev.classList.remove("hidden");
+            next.classList.remove("hidden");
+            counter.classList.remove("hidden");
+            counter.textContent = (st.idx + 1) + " / " + st.urls.length;
+            prev.disabled = (st.idx === 0);
+            next.disabled = (st.idx === st.urls.length - 1);
+        } else {
+            prev.classList.add("hidden");
+            next.classList.add("hidden");
+            counter.classList.add("hidden");
+        }
+    }
+
+    function _viewerStep(delta) {
+        var st = state.portfolioViewer;
+        if (!st || !st.urls) return;
+        var n = st.urls.length;
+        st.idx = Math.min(Math.max(0, st.idx + delta), n - 1);
+        _renderViewerGalleryStep();
+    }
+
     function openViewer(item) {
         var img  = $("#viewerImage");
         var info = $("#viewerInfo");
+        var prev = $("#viewerPrev");
+        var next = $("#viewerNext");
+        var counter = $("#viewerCounter");
+
         if (typeof item === "string") {
+            state.portfolioViewer = null;
             img.src = item;
             info.classList.add("hidden");
+            prev.classList.add("hidden");
+            next.classList.add("hidden");
+            counter.classList.add("hidden");
         } else {
-            img.src = item.url || "";
+            var urls = _portfolioGalleryUrls(item);
+            state.portfolioViewer = { urls: urls, idx: 0, item: item };
+            _renderViewerGalleryStep();
+
             $("#viewerTitle").textContent       = item.title || "";
             $("#viewerDescription").textContent = item.description || "";
             $("#viewerCategory").textContent    = CATEGORY_LABELS[item.category] || item.category || "";
-            if (item.title || item.description) info.classList.remove("hidden");
+
+            var dateEl = $("#viewerDate");
+            var pubText = _formatPubDate(item.published_at || item.created_at);
+            if (pubText) {
+                dateEl.textContent = pubText;
+                dateEl.classList.remove("hidden");
+            } else {
+                dateEl.classList.add("hidden");
+            }
+
+            var tagsEl = $("#viewerTags");
+            var tags = Array.isArray(item.tags) ? item.tags : [];
+            if (tags.length) {
+                tagsEl.innerHTML = tags.slice(0, 12).map(function(t) {
+                    return '<button class="viewer-tag chip" data-tag="' + esc(t) + '">#' + esc(t) + '</button>';
+                }).join("");
+                tagsEl.classList.remove("hidden");
+            } else {
+                tagsEl.innerHTML = "";
+                tagsEl.classList.add("hidden");
+            }
+
+            if (item.title || item.description || tags.length) info.classList.remove("hidden");
             else info.classList.add("hidden");
         }
         $("#imageViewer").classList.remove("hidden");
@@ -194,6 +289,7 @@
         setTimeout(function() { $("#viewerImage").src = ""; }, 200);
         $("#viewerInfo").classList.add("hidden");
         document.body.style.overflow = "";
+        state.portfolioViewer = null;
     }
 
     function setLoading(el, gridSpan) {
@@ -863,11 +959,26 @@
         var grid = $("#portfolioGrid");
         setLoading(grid, true);
         try {
-            var data = await sbSelect("portfolio", { order: "created_at", asc: false });
+            // published_at — дата публикации в канале; если её нет (старые ручные
+            // записи) — фоллбек на created_at. Сортируем сначала по published_at.
+            var data;
+            try {
+                data = await sbSelect("portfolio", { order: "published_at", asc: false });
+            } catch (sortErr) {
+                // Фоллбек на случай, если миграция ещё не применена в БД.
+                console.warn("portfolio: published_at order failed, falling back to created_at", sortErr);
+                data = await sbSelect("portfolio", { order: "created_at", asc: false });
+            }
             state.portfolio = data.map(function(item) {
-                return Object.assign({}, item, { url: portfolioUrl(item.filename) });
+                return Object.assign({}, item, {
+                    url: portfolioUrl(item.filename),
+                    _photoCount: _portfolioGalleryUrls(item).length,
+                    _searchBlob: _buildSearchBlob(item),
+                });
             });
             state.loaded.portfolio = true;
+            state.portfolioVisible = state.portfolioPageSize;
+            _rebuildPortfolioTagFilter();
             renderPortfolio();
         } catch(e) {
             console.error(e);
@@ -875,48 +986,209 @@
         }
     }
 
-    function renderPortfolio() {
-        var grid     = $("#portfolioGrid");
-        var items    = state.portfolio;
-        var filter   = state.portfolioFilter;
-        var filtered = filter === "all" ? items : items.filter(function(x) { return x.category === filter; });
-        if (!filtered.length) {
-            setEmpty(grid,
-                items.length ? "ph-light ph-funnel" : "ph-light ph-image-broken",
-                items.length ? "Нет работ в этой категории" : "Портфолио пока пусто"
-            );
+    function _buildSearchBlob(item) {
+        var parts = [
+            item.title || "",
+            item.description || "",
+            item.raw_text || "",
+            item.category || "",
+            (Array.isArray(item.tags) ? item.tags.join(" ") : ""),
+        ];
+        return parts.join(" ").toLowerCase();
+    }
+
+    function _portfolioFilteredItems() {
+        var items = state.portfolio;
+        var byCat = state.portfolioFilter === "all"
+            ? items
+            : items.filter(function(x) { return x.category === state.portfolioFilter; });
+        var byTag = state.portfolioTagFilter
+            ? byCat.filter(function(x) {
+                return Array.isArray(x.tags) && x.tags.indexOf(state.portfolioTagFilter) !== -1;
+              })
+            : byCat;
+        var q = (state.portfolioSearch || "").trim().toLowerCase();
+        if (!q) return byTag;
+        // Простой substring-поиск по «куче» полей; нормально работает на 1000 строках.
+        return byTag.filter(function(x) {
+            return (x._searchBlob || "").indexOf(q) !== -1;
+        });
+    }
+
+    function _rebuildPortfolioTagFilter() {
+        var bar = $("#portfolioTags");
+        if (!bar) return;
+        // Собираем top-N тегов по частоте в текущем срезе по категории.
+        var pool = state.portfolioFilter === "all"
+            ? state.portfolio
+            : state.portfolio.filter(function(x) { return x.category === state.portfolioFilter; });
+        var counts = {};
+        pool.forEach(function(it) {
+            (it.tags || []).forEach(function(t) {
+                if (!t) return;
+                counts[t] = (counts[t] || 0) + 1;
+            });
+        });
+        var top = Object.keys(counts)
+            .sort(function(a, b) { return counts[b] - counts[a]; })
+            .slice(0, 18);
+        if (!top.length) {
+            bar.classList.add("hidden");
+            bar.innerHTML = "";
             return;
         }
-        var html = "";
-        filtered.forEach(function(it, j) {
+        var html = '<button class="chip tag-chip ' + (state.portfolioTagFilter ? "" : "active") +
+                   '" data-tag="">все теги</button>';
+        top.forEach(function(t) {
+            var active = state.portfolioTagFilter === t ? " active" : "";
+            html += '<button class="chip tag-chip' + active + '" data-tag="' + esc(t) +
+                    '">#' + esc(t) + ' <span class="tag-count">' + counts[t] + '</span></button>';
+        });
+        bar.innerHTML = html;
+        bar.classList.remove("hidden");
+    }
+
+    function renderPortfolio() {
+        var grid       = $("#portfolioGrid");
+        var loadMore   = $("#portfolioLoadMore");
+        var allFiltered = _portfolioFilteredItems();
+        var allItems    = state.portfolio;
+
+        if (!allFiltered.length) {
+            setEmpty(grid,
+                allItems.length ? "ph-light ph-funnel" : "ph-light ph-image-broken",
+                allItems.length ? "Ничего не найдено" : "Портфолио пока пусто",
+                allItems.length ? "Сбросьте фильтры или попробуйте другой запрос" : ""
+            );
+            if (loadMore) loadMore.classList.add("hidden");
+            return;
+        }
+        var visible  = state.portfolioVisible || state.portfolioPageSize;
+        var slice    = allFiltered.slice(0, visible);
+        var html     = "";
+        slice.forEach(function(it, j) {
+            var multi = (it._photoCount && it._photoCount > 1)
+                ? '<span class="p-card-badge"><i class="ph-bold ph-stack"></i>' + it._photoCount + '</span>'
+                : '';
+            var topTags = (it.tags || []).slice(0, 2)
+                .map(function(t) { return '<span class="p-card-tag">#' + esc(t) + '</span>'; })
+                .join("");
             html +=
                 '<div class="p-card" data-pidx="' + j + '">' +
                 '<img src="' + esc(it.url) + '" alt="' + esc(it.title || "") + '" loading="lazy">' +
+                multi +
                 '<div class="p-card-info">' +
                 '<h4>' + esc(it.title || "") + '</h4>' +
                 (it.category ? '<span class="p-card-cat">' + esc(CATEGORY_LABELS[it.category] || it.category) + '</span>' : '') +
+                (topTags ? '<div class="p-card-tags">' + topTags + '</div>' : '') +
                 '</div></div>';
         });
-        grid.innerHTML   = html;
-        grid._filtered   = filtered;
-        $$(".p-card").forEach(function(card) {
+        grid.innerHTML  = html;
+        grid._filtered  = slice;
+        $$("#portfolioGrid .p-card").forEach(function(card) {
             card.addEventListener("click", function() {
                 var idx = parseInt(this.getAttribute("data-pidx"), 10);
                 if (grid._filtered[idx]) openViewer(grid._filtered[idx]);
             });
         });
+        if (loadMore) {
+            if (allFiltered.length > slice.length) {
+                loadMore.classList.remove("hidden");
+                loadMore.textContent = "Показать ещё (" + (allFiltered.length - slice.length) + ")";
+            } else {
+                loadMore.classList.add("hidden");
+            }
+        }
     }
 
     function initPortfolioFilter() {
-        var bar = $("#portfolioFilter");
-        if (!bar) return;
-        bar.addEventListener("click", function(e) {
-            var chip = e.target.closest(".chip");
-            if (!chip) return;
-            $$(".chip").forEach(function(c) { c.classList.remove("active"); });
-            chip.classList.add("active");
-            state.portfolioFilter = chip.getAttribute("data-filter") || "all";
-            renderPortfolio();
+        var catBar = $("#portfolioFilter");
+        if (catBar) {
+            catBar.addEventListener("click", function(e) {
+                var chip = e.target.closest(".chip");
+                if (!chip) return;
+                $$("#portfolioFilter .chip").forEach(function(c) { c.classList.remove("active"); });
+                chip.classList.add("active");
+                state.portfolioFilter = chip.getAttribute("data-filter") || "all";
+                state.portfolioTagFilter = null;
+                state.portfolioVisible = state.portfolioPageSize;
+                _rebuildPortfolioTagFilter();
+                renderPortfolio();
+            });
+        }
+        var tagBar = $("#portfolioTags");
+        if (tagBar) {
+            tagBar.addEventListener("click", function(e) {
+                var chip = e.target.closest(".tag-chip");
+                if (!chip) return;
+                var tag = chip.getAttribute("data-tag") || "";
+                state.portfolioTagFilter = tag || null;
+                state.portfolioVisible = state.portfolioPageSize;
+                _rebuildPortfolioTagFilter();
+                renderPortfolio();
+            });
+        }
+        var search = $("#portfolioSearch");
+        var clear  = $("#portfolioSearchClear");
+        if (search) {
+            var deb = null;
+            search.addEventListener("input", function() {
+                if (clear) clear.classList.toggle("hidden", !search.value);
+                clearTimeout(deb);
+                deb = setTimeout(function() {
+                    state.portfolioSearch = search.value || "";
+                    state.portfolioVisible = state.portfolioPageSize;
+                    renderPortfolio();
+                }, 180);
+            });
+        }
+        if (clear) {
+            clear.addEventListener("click", function() {
+                if (search) search.value = "";
+                state.portfolioSearch = "";
+                state.portfolioVisible = state.portfolioPageSize;
+                clear.classList.add("hidden");
+                renderPortfolio();
+            });
+        }
+        var loadMore = $("#portfolioLoadMore");
+        if (loadMore) {
+            loadMore.addEventListener("click", function() {
+                state.portfolioVisible += state.portfolioPageSize;
+                renderPortfolio();
+            });
+        }
+
+        // Клик по тегу в viewer → закрыть viewer и применить фильтр.
+        var tagsEl = $("#viewerTags");
+        if (tagsEl) {
+            tagsEl.addEventListener("click", function(e) {
+                var b = e.target.closest("[data-tag]");
+                if (!b) return;
+                var tag = b.getAttribute("data-tag") || "";
+                if (!tag) return;
+                state.portfolioTagFilter = tag;
+                state.portfolioVisible = state.portfolioPageSize;
+                _rebuildPortfolioTagFilter();
+                renderPortfolio();
+                closeViewer();
+                // Прокрутить к секции портфолио.
+                var sec = $("#section-portfolio");
+                if (sec) sec.scrollIntoView({ behavior: "smooth", block: "start" });
+            });
+        }
+
+        // Кнопки prev/next в viewer.
+        var prev = $("#viewerPrev");
+        var next = $("#viewerNext");
+        if (prev) prev.addEventListener("click", function(e) { e.stopPropagation(); _viewerStep(-1); });
+        if (next) next.addEventListener("click", function(e) { e.stopPropagation(); _viewerStep(+1); });
+        // Стрелки клавиатуры.
+        document.addEventListener("keydown", function(e) {
+            if ($("#imageViewer").classList.contains("hidden")) return;
+            if (e.key === "ArrowLeft")  _viewerStep(-1);
+            if (e.key === "ArrowRight") _viewerStep(+1);
+            if (e.key === "Escape")     closeViewer();
         });
     }
 
