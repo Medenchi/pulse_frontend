@@ -1185,6 +1185,60 @@ body {
 
 /* ==================== PORTFOLIO ==================== */
 
+.portfolio-switch {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+    margin-bottom: 12px;
+    padding: 4px;
+    background: linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02));
+    border: 1px solid var(--border);
+    border-radius: var(--r2);
+}
+
+.portfolio-switch-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    min-height: 42px;
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: var(--r);
+    color: var(--w40);
+    font-family: var(--font);
+    font-size: 0.78rem;
+    font-weight: 800;
+    cursor: pointer;
+    letter-spacing: 0.2px;
+    transition: all 0.18s var(--ease);
+}
+
+.portfolio-switch-btn svg {
+    width: 18px;
+    height: 18px;
+    fill: currentColor;
+    filter: drop-shadow(0 0 0 rgba(198,40,40,0));
+    transition: filter 0.18s var(--ease), transform 0.18s var(--ease);
+}
+
+.portfolio-switch-btn.active {
+    background: linear-gradient(135deg, var(--accent), var(--accent-muted));
+    border-color: var(--accent-border);
+    color: var(--white);
+    box-shadow: var(--shadow-accent);
+}
+
+.portfolio-switch-btn.active svg {
+    transform: scale(1.08);
+    filter: drop-shadow(0 0 8px rgba(255,255,255,0.18));
+}
+
+.portfolio-switch-btn:active:not(.active) {
+    background: var(--surface2);
+    color: var(--w80);
+}
+
 .filter-bar {
     display: flex;
     gap: 6px;
@@ -1316,6 +1370,44 @@ body {
 }
 
 .p-card-badge i { font-size: 0.7rem; }
+
+.p-card.review-card {
+    aspect-ratio: 0.82;
+}
+
+.p-card.review-card .p-card-info {
+    padding-top: 54px;
+    background: linear-gradient(180deg, rgba(0,0,0,0.08), rgba(0,0,0,0.9));
+}
+
+.p-card-review-mark {
+    position: absolute;
+    top: 7px;
+    left: 7px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    padding: 4px 8px;
+    border-radius: var(--r-full);
+    background: rgba(198,40,40,0.82);
+    color: #fff;
+    font-size: 0.58rem;
+    font-weight: 800;
+    backdrop-filter: blur(5px);
+    -webkit-backdrop-filter: blur(5px);
+    box-shadow: 0 4px 16px rgba(198,40,40,0.26);
+}
+
+.p-card-desc {
+    margin-top: 4px;
+    font-size: 0.62rem;
+    color: rgba(255,255,255,0.68);
+    line-height: 1.35;
+    display: -webkit-box;
+    -webkit-line-clamp: 3;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+}
 
 /* Поиск по портфолио */
 .portfolio-search-wrap {
@@ -2029,6 +2121,27 @@ body {
 }
 
 @keyframes spin { to { transform: rotate(360deg); } }
+
+
+.viewer-telegram {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    margin: 10px 0 2px;
+    padding: 8px 12px;
+    border-radius: var(--r-full);
+    background: var(--surface3);
+    border: 1px solid var(--border2);
+    color: var(--w80);
+    text-decoration: none;
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.viewer-telegram:active {
+    background: var(--accent);
+    color: var(--white);
+}
 
 /* ==================== ADMIN ==================== */
 
