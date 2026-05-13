@@ -28,6 +28,8 @@
         builds: [],
         readyBuilds: [],
         portfolio: [],
+        portfolioSource: "supabase",
+        portfolioMode: "works",
         portfolioFilter: "all",
         portfolioTagFilter: null,
         portfolioSearch: "",
@@ -86,6 +88,7 @@
         repair:  "Ремонт",
         upgrade: "Апгрейд",
         custom:  "Кастом",
+        review:  "Отзыв",
         general: "Другое"
     };
 
@@ -180,7 +183,7 @@
         // Главное фото + extra_files. extra_files — массив объектов {filename:"..."}
         // (как пишет бэкап-скрипт и real-time хендлер).
         var urls = [item.url || portfolioUrl(item.filename)];
-        var extra = item.extra_files;
+        var extra = item.photos || item.extra_files;
         if (extra && typeof extra === "string") {
             try { extra = JSON.parse(extra); } catch (e) { extra = []; }
         }
@@ -188,7 +191,7 @@
             extra.forEach(function(f) {
                 if (!f) return;
                 var fn = (typeof f === "string") ? f : (f.filename || f.url || "");
-                if (fn) urls.push(portfolioUrl(fn));
+                if (fn && urls.indexOf(portfolioUrl(fn)) === -1) urls.push(portfolioUrl(fn));
             });
         }
         return urls.filter(function(u) { return !!u; });
@@ -253,8 +256,18 @@
             _renderViewerGalleryStep();
 
             $("#viewerTitle").textContent       = item.title || "";
-            $("#viewerDescription").textContent = item.description || "";
+            $("#viewerDescription").textContent = item.pulse_summary || item.description || "";
             $("#viewerCategory").textContent    = CATEGORY_LABELS[item.category] || item.category || "";
+            var tgLink = $("#viewerTelegramLink");
+            if (tgLink) {
+                if (item.telegram_url) {
+                    tgLink.href = item.telegram_url;
+                    tgLink.classList.remove("hidden");
+                } else {
+                    tgLink.href = "#";
+                    tgLink.classList.add("hidden");
+                }
+            }
 
             var dateEl = $("#viewerDate");
             var pubText = _formatPubDate(item.published_at || item.created_at);
@@ -438,6 +451,7 @@
         }
         var q = db.from(table).select(opts.select || "*");
         if (opts.eq)    q = q.eq(opts.eq[0], opts.eq[1]);
+        if (opts.in)    q = q.in(opts.in[0], opts.in[1]);
         if (opts.order) q = q.order(opts.order, { ascending: !!opts.asc });
         if (opts.limit) q = q.limit(opts.limit);
         var result = await q;
@@ -465,7 +479,7 @@
 
     function portfolioUrl(filename) {
         if (!filename) return "";
-        if (filename.startsWith("http")) return filename;
+        if (filename.startsWith("http") || filename.startsWith("assets/")) return filename;
         return SUPABASE_URL + "/storage/v1/object/public/portfolio/" + filename;
     }
 
@@ -955,23 +969,63 @@
     }
 
     // ==================== PORTFOLIO ====================
+    async function _loadStaticPortfolio() {
+        var fallback = await fetch("assets/portfolio_channel.json", { cache: "no-store" });
+        if (!fallback.ok) throw new Error("portfolio fallback not found");
+        var data = await fallback.json();
+        state.portfolio = data.map(function(item) {
+            return Object.assign({}, item, {
+                url: portfolioUrl(item.filename),
+                portfolio_kind: _portfolioKind(item),
+                _photoCount: _portfolioGalleryUrls(item).length,
+                _searchBlob: _buildSearchBlob(item),
+            });
+        });
+        state.portfolioSource = "static";
+        state.loaded.portfolio = true;
+        state.portfolioVisible = state.portfolioPageSize;
+        _rebuildPortfolioTagFilter();
+        renderPortfolio();
+    }
+
     async function loadPortfolio() {
         var grid = $("#portfolioGrid");
         setLoading(grid, true);
         try {
+            if (window.location.protocol === "file:") {
+                await _loadStaticPortfolio();
+                return;
+            }
             // published_at — дата публикации в канале; если её нет (старые ручные
             // записи) — фоллбек на created_at. Сортируем сначала по published_at.
             var data;
+            var staticFallbackLoaded = false;
             try {
-                data = await sbSelect("portfolio", { order: "published_at", asc: false });
-            } catch (sortErr) {
-                // Фоллбек на случай, если миграция ещё не применена в БД.
-                console.warn("portfolio: published_at order failed, falling back to created_at", sortErr);
-                data = await sbSelect("portfolio", { order: "created_at", asc: false });
+                data = await sbSelect("portfolio", { order: "published_at", asc: false, in: ["portfolio_kind", ["work", "review"]] });
+                state.portfolioSource = "supabase";
+            } catch (kindErr) {
+                try {
+                    data = await sbSelect("portfolio", { order: "published_at", asc: false });
+                    state.portfolioSource = "supabase";
+                } catch (sortErr) {
+                    console.warn("portfolio: published_at order failed, falling back to created_at", sortErr);
+                    data = await sbSelect("portfolio", { order: "created_at", asc: false });
+                    state.portfolioSource = "supabase";
+                }
             }
+            if (!data || !data.some(function(item) { return _portfolioKind(item) === "review"; })) {
+                try {
+                    await _loadStaticPortfolio();
+                    staticFallbackLoaded = true;
+                } catch (emptyFallbackErr) {
+                    console.warn("portfolio static fallback unavailable", emptyFallbackErr);
+                }
+            }
+            if (staticFallbackLoaded) return;
             state.portfolio = data.map(function(item) {
                 return Object.assign({}, item, {
                     url: portfolioUrl(item.filename),
+                    portfolio_kind: _portfolioKind(item),
                     _photoCount: _portfolioGalleryUrls(item).length,
                     _searchBlob: _buildSearchBlob(item),
                 });
@@ -982,7 +1036,12 @@
             renderPortfolio();
         } catch(e) {
             console.error(e);
-            setEmpty(grid, "ph-light ph-image-broken", "Не удалось загрузить портфолио");
+            try {
+                await _loadStaticPortfolio();
+            } catch(fallbackErr) {
+                console.error(fallbackErr);
+                setEmpty(grid, "ph-light ph-image-broken", "Не удалось загрузить портфолио");
+            }
         }
     }
 
@@ -990,6 +1049,7 @@
         var parts = [
             item.title || "",
             item.description || "",
+            item.pulse_summary || "",
             item.raw_text || "",
             item.category || "",
             (Array.isArray(item.tags) ? item.tags.join(" ") : ""),
@@ -997,9 +1057,21 @@
         return parts.join(" ").toLowerCase();
     }
 
+    function _portfolioKind(item) {
+        if (item.portfolio_kind) return item.portfolio_kind;
+        if (item.category === "review") return "review";
+        if (item.category === "general") return "general";
+        return "work";
+    }
+
+    function _portfolioModeItems() {
+        var want = state.portfolioMode === "reviews" ? "review" : "work";
+        return state.portfolio.filter(function(x) { return _portfolioKind(x) === want; });
+    }
+
     function _portfolioFilteredItems() {
-        var items = state.portfolio;
-        var byCat = state.portfolioFilter === "all"
+        var items = _portfolioModeItems();
+        var byCat = (state.portfolioMode === "reviews" || state.portfolioFilter === "all")
             ? items
             : items.filter(function(x) { return x.category === state.portfolioFilter; });
         var byTag = state.portfolioTagFilter
@@ -1019,9 +1091,10 @@
         var bar = $("#portfolioTags");
         if (!bar) return;
         // Собираем top-N тегов по частоте в текущем срезе по категории.
-        var pool = state.portfolioFilter === "all"
-            ? state.portfolio
-            : state.portfolio.filter(function(x) { return x.category === state.portfolioFilter; });
+        var modeItems = _portfolioModeItems();
+        var pool = (state.portfolioMode === "reviews" || state.portfolioFilter === "all")
+            ? modeItems
+            : modeItems.filter(function(x) { return x.category === state.portfolioFilter; });
         var counts = {};
         pool.forEach(function(it) {
             (it.tags || []).forEach(function(t) {
@@ -1052,12 +1125,13 @@
         var grid       = $("#portfolioGrid");
         var loadMore   = $("#portfolioLoadMore");
         var allFiltered = _portfolioFilteredItems();
-        var allItems    = state.portfolio;
+        var allItems    = _portfolioModeItems();
 
         if (!allFiltered.length) {
+            var emptyText = state.portfolioMode === "reviews" ? "Отзывов пока нет" : "Портфолио пока пусто";
             setEmpty(grid,
-                allItems.length ? "ph-light ph-funnel" : "ph-light ph-image-broken",
-                allItems.length ? "Ничего не найдено" : "Портфолио пока пусто",
+                allItems.length ? "ph-light ph-funnel" : (state.portfolioMode === "reviews" ? "ph-light ph-chat-circle-text" : "ph-light ph-image-broken"),
+                allItems.length ? "Ничего не найдено" : emptyText,
                 allItems.length ? "Сбросьте фильтры или попробуйте другой запрос" : ""
             );
             if (loadMore) loadMore.classList.add("hidden");
@@ -1073,13 +1147,17 @@
             var topTags = (it.tags || []).slice(0, 2)
                 .map(function(t) { return '<span class="p-card-tag">#' + esc(t) + '</span>'; })
                 .join("");
+            var isReview = _portfolioKind(it) === "review";
+            var summary = it.pulse_summary || it.description || "";
             html +=
-                '<div class="p-card" data-pidx="' + j + '">' +
+                '<div class="p-card' + (isReview ? ' review-card' : '') + '" data-pidx="' + j + '">' +
                 '<img src="' + esc(it.url) + '" alt="' + esc(it.title || "") + '" loading="lazy">' +
+                (isReview ? '<span class="p-card-review-mark"><i class="ph-bold ph-chat-circle-text"></i> отзыв</span>' : '') +
                 multi +
                 '<div class="p-card-info">' +
                 '<h4>' + esc(it.title || "") + '</h4>' +
                 (it.category ? '<span class="p-card-cat">' + esc(CATEGORY_LABELS[it.category] || it.category) + '</span>' : '') +
+                (summary ? '<p class="p-card-desc">' + esc(clamp(summary, isReview ? 170 : 120)) + '</p>' : '') +
                 (topTags ? '<div class="p-card-tags">' + topTags + '</div>' : '') +
                 '</div></div>';
         });
@@ -1103,6 +1181,23 @@
 
     function initPortfolioFilter() {
         var catBar = $("#portfolioFilter");
+        var modeSwitch = $("#portfolioModeSwitch");
+        if (modeSwitch) {
+            modeSwitch.addEventListener("click", function(e) {
+                var btn = e.target.closest("[data-mode]");
+                if (!btn) return;
+                $$("#portfolioModeSwitch .portfolio-switch-btn").forEach(function(b) { b.classList.remove("active"); });
+                btn.classList.add("active");
+                state.portfolioMode = btn.getAttribute("data-mode") || "works";
+                state.portfolioFilter = "all";
+                state.portfolioTagFilter = null;
+                state.portfolioVisible = state.portfolioPageSize;
+                $$("#portfolioFilter .chip").forEach(function(c) { c.classList.toggle("active", c.getAttribute("data-filter") === "all"); });
+                if (catBar) catBar.classList.toggle("hidden", state.portfolioMode === "reviews");
+                _rebuildPortfolioTagFilter();
+                renderPortfolio();
+            });
+        }
         if (catBar) {
             catBar.addEventListener("click", function(e) {
                 var chip = e.target.closest(".chip");
@@ -1984,6 +2079,7 @@
             '<option value="repair">Ремонт</option>' +
             '<option value="upgrade">Апгрейд</option>' +
             '<option value="custom">Кастом</option>' +
+            '<option value="review">Отзыв</option>' +
             '<option value="general">Другое</option>' +
             '</select></div>' +
             '<div style="display:flex;gap:8px;margin-top:6px;">' +
@@ -2030,6 +2126,7 @@
                 title:       title,
                 description: desc,
                 category:    category,
+                portfolio_kind: category === "review" ? "review" : "work",
                 added_by:    state.userId,
                 created_at:  new Date().toISOString()
             });

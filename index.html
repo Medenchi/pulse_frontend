@@ -302,6 +302,16 @@
                 <h2>Портфолио</h2>
                 <p>Наши готовые работы</p>
             </div>
+            <div class="portfolio-switch" id="portfolioModeSwitch" aria-label="Разделы портфолио">
+                <button class="portfolio-switch-btn active" data-mode="works" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 7.5A2.5 2.5 0 0 1 6.5 5h11A2.5 2.5 0 0 1 20 7.5v9a2.5 2.5 0 0 1-2.5 2.5h-11A2.5 2.5 0 0 1 4 16.5v-9Zm4-.5v2h8V7H8Zm0 4v6h8v-6H8Z"/></svg>
+                    <span>Работы</span>
+                </button>
+                <button class="portfolio-switch-btn" data-mode="reviews" type="button">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6.5 5h11A2.5 2.5 0 0 1 20 7.5v6A2.5 2.5 0 0 1 17.5 16H11l-4.2 3.15A.5.5 0 0 1 6 18.75V16A2.5 2.5 0 0 1 3.5 13.5v-6A2.5 2.5 0 0 1 6.5 5Zm1 4.25a.75.75 0 0 0 0 1.5h9a.75.75 0 0 0 0-1.5h-9Zm0 3a.75.75 0 0 0 0 1.5H13a.75.75 0 0 0 0-1.5H7.5Z"/></svg>
+                    <span>Отзывы</span>
+                </button>
+            </div>
             <div class="portfolio-search-wrap">
                 <i class="ph-light ph-magnifying-glass portfolio-search-ico"></i>
                 <input type="text" id="portfolioSearch"
@@ -931,6 +941,9 @@
             <span class="viewer-date" id="viewerDate"></span>
             <h3 class="viewer-title" id="viewerTitle"></h3>
             <p class="viewer-desc" id="viewerDescription"></p>
+            <a class="viewer-telegram hidden" id="viewerTelegramLink" href="#" target="_blank" rel="noopener">
+                <i class="ph-bold ph-telegram-logo"></i> Открыть пост
+            </a>
             <div class="viewer-tags hidden" id="viewerTags"></div>
         </div>
     </div>
