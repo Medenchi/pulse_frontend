@@ -712,12 +712,63 @@
                 <button class="admin-tab" data-atab="a-portfolio">
                     <i class="ph-bold ph-images"></i> Работы
                 </button>
+                <button class="admin-tab" data-atab="a-ai-import">
+                    <i class="ph-bold ph-sparkle"></i> AI импорт
+                </button>
                 <button class="admin-tab" data-atab="a-users">
                     <i class="ph-bold ph-users"></i> Клиенты
                 </button>
                 <button class="admin-tab" data-atab="a-settings">
                     <i class="ph-bold ph-gear"></i> Настройки
                 </button>
+            </div>
+
+            <!-- AI Portfolio Import -->
+            <div class="admin-panel" id="a-ai-import">
+                <div class="admin-card">
+                    <div class="admin-card-head">
+                        <h3>AI импорт портфолио</h3>
+                        <button class="btn btn-ghost btn-sm" id="adminRefreshAiImport">
+                            <i class="ph-bold ph-arrow-clockwise"></i>
+                        </button>
+                    </div>
+                    <p class="admin-help">
+                        Запускает парсинг <b>@pulse_computers</b>, AI-модерацию, заголовки и Pulse Summary.
+                        Неподходящие посты логируются как <code>IsPortf:false</code>.
+                    </p>
+                    <div class="form-group">
+                        <label>API адрес бота (если админка не на том же домене)</label>
+                        <input id="aiImportApiBase" placeholder="https://your-bot-domain.com">
+                    </div>
+                    <div class="form-group">
+                        <label>Web token (если админка открыта не из Telegram)</label>
+                        <input id="aiImportToken" type="password" placeholder="PORTFOLIO_IMPORT_WEB_TOKEN">
+                    </div>
+                    <div class="ai-import-controls">
+                        <div class="form-group">
+                            <label>Лимит для теста</label>
+                            <input id="aiImportLimit" type="number" min="0" inputmode="numeric" placeholder="0 = вся история">
+                        </div>
+                        <button class="btn btn-ghost btn-block" id="adminSaveAiApiBase">
+                            <i class="ph-bold ph-link"></i> Сохранить доступ
+                        </button>
+                        <button class="btn btn-primary btn-block" id="adminStartAiImport">
+                            <i class="ph-bold ph-play"></i> Запустить AI импорт
+                        </button>
+                    </div>
+                    <div class="ai-import-status" id="aiImportStatus">
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+
+                <div class="admin-card">
+                    <div class="admin-card-head">
+                        <h3>Лог AI процесса</h3>
+                    </div>
+                    <div class="ai-import-log" id="aiImportLog">
+                        <div class="portfolio-empty"><p>Логи появятся после запуска</p></div>
+                    </div>
+                </div>
             </div>
 
             <!-- Dashboard -->

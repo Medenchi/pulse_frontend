@@ -53,7 +53,8 @@
             bot_username:        "PulseComputersBot",
             manager_deeplink:    "https://t.me/PulseComputersBot?start=manager",
             admin_personal_link: "https://t.me/Pulse_Gadgets1",
-            taplink_url:         "https://pulsegadgets.taplink.ws"
+            taplink_url:         "https://pulsegadgets.taplink.ws",
+            api_base_url:        ""
         },
         admin: {
             currentTab:  "a-dashboard",
@@ -62,7 +63,8 @@
             readyBuilds: [],
             orders:      [],
             portfolio:   [],
-            users:       []
+            users:       [],
+            aiImportTimer: null
         }
     };
 
@@ -339,10 +341,24 @@
     }
 
     // ==================== CONFIG ====================
-    function loadConfig() {
+    async function loadConfig() {
         if (state.isAdmin) {
             var btn = $("#adminNavBtn");
             if (btn) btn.classList.remove("hidden");
+        }
+        if (window.location.protocol !== "file:") {
+            try {
+                var r = await fetch("/api/config", { cache: "no-store" });
+                if (r.ok) {
+                    var cfg = await r.json();
+                    state.config = Object.assign(state.config, cfg || {});
+                    if (cfg && cfg.admin_ids && state.userId && cfg.admin_ids.indexOf(Number(state.userId)) !== -1) {
+                        state.isAdmin = true;
+                        var navBtn = $("#adminNavBtn");
+                        if (navBtn) navBtn.classList.remove("hidden");
+                    }
+                }
+            } catch(e) {}
         }
         updateDynamicLinks();
     }
@@ -481,6 +497,28 @@
         if (!filename) return "";
         if (filename.startsWith("http") || filename.startsWith("assets/")) return filename;
         return SUPABASE_URL + "/storage/v1/object/public/portfolio/" + filename;
+    }
+
+    async function apiGet(path) {
+        var r = await fetch(apiUrl(path), { cache: "no-store" });
+        if (!r.ok) throw new Error("HTTP " + r.status);
+        return await r.json();
+    }
+
+    async function apiPost(path, payload) {
+        var r = await fetch(apiUrl(path), {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify(payload || {})
+        });
+        var data = await r.json().catch(function() { return {}; });
+        if (!r.ok) throw new Error(data.error || ("HTTP " + r.status));
+        return data;
+    }
+
+    function apiUrl(path) {
+        var base = (state.config.api_base_url || localStorage.getItem("pulse_api_base_url") || "").replace(/\/$/, "");
+        return base ? base + path : path;
     }
 
     // ==================== STORAGE UPLOAD ====================
@@ -1569,6 +1607,7 @@
             "a-ready":     adminLoadReadyBuilds,
             "a-orders":    adminLoadOrders,
             "a-portfolio": adminLoadPortfolio,
+            "a-ai-import": adminLoadAiImport,
             "a-users":     adminLoadUsers,
             "a-settings":  adminLoadSettings
         };
@@ -2154,6 +2193,105 @@
         } catch(e) { toast("Ошибка", "error"); }
     };
 
+    // --- AI Portfolio Import Admin ---
+    async function adminLoadAiImport() {
+        var apiInput = $("#aiImportApiBase");
+        if (apiInput) apiInput.value = localStorage.getItem("pulse_api_base_url") || state.config.api_base_url || "";
+        var tokenInput = $("#aiImportToken");
+        if (tokenInput) tokenInput.value = localStorage.getItem("pulse_import_web_token") || "";
+        await adminRefreshAiImport();
+        if (state.admin.aiImportTimer) clearInterval(state.admin.aiImportTimer);
+        state.admin.aiImportTimer = setInterval(function() {
+            if (state.admin.currentTab === "a-ai-import") adminRefreshAiImport();
+        }, 4000);
+    }
+
+    async function adminRefreshAiImport() {
+        var statusEl = $("#aiImportStatus");
+        var logEl = $("#aiImportLog");
+        if (!statusEl || !logEl) return;
+        try {
+            var status = await apiGet("/api/admin/portfolio-import/status");
+            renderAiImportStatus(status);
+            renderAiImportLog(status.logs || []);
+        } catch(e) {
+            statusEl.innerHTML = '<div class="portfolio-empty"><p>Бэкенд импорта недоступен</p></div>';
+            logEl.innerHTML = '<div class="portfolio-empty"><p>Открой админку через домен бота, где есть /api/admin/portfolio-import/*</p></div>';
+        }
+    }
+
+    function renderAiImportStatus(status) {
+        var el = $("#aiImportStatus");
+        if (!el) return;
+        var stats = status.stats || {};
+        var running = !!status.running;
+        el.innerHTML =
+            '<div class="ai-status-row">' +
+            '<span class="ai-status-pill ' + (running ? 'running' : '') + '">' + (running ? 'Идёт импорт' : 'Остановлен') + '</span>' +
+            '<span>Канал: @' + esc(status.channel || 'pulse_computers') + '</span>' +
+            '</div>' +
+            '<div class="ai-status-grid">' +
+            adminStat("Google AI", status.google_ai ? "on" : "off", "ph-bold ph-sparkle") +
+            adminStat("Модель", status.model || "gemma", "ph-bold ph-brain") +
+            adminStat("Просмотрено", stats.seen || 0, "ph-bold ph-eye") +
+            adminStat("Добавлено", stats.imported || 0, "ph-bold ph-images") +
+            adminStat("Дубли", stats.skipped_existing || 0, "ph-bold ph-copy") +
+            '</div>' +
+            (status.error ? '<div class="ai-import-error">' + esc(status.error) + '</div>' : '');
+    }
+
+    function renderAiImportLog(logs) {
+        var el = $("#aiImportLog");
+        if (!el) return;
+        if (!logs.length) {
+            el.innerHTML = '<div class="portfolio-empty"><p>Логи появятся после запуска</p></div>';
+            return;
+        }
+        el.innerHTML = logs.slice().reverse().map(function(x) {
+            var cls = x.isPortfolio === false ? ' no' : (x.isPortfolio === true ? ' yes' : '');
+            return '<div class="ai-log-item' + cls + '">' +
+                '<div class="ai-log-time">' + esc(fmtDate(x.ts)) + '</div>' +
+                '<div class="ai-log-message">' + esc(x.message || '') + '</div>' +
+                (x.summary ? '<div class="ai-log-summary">' + esc(x.summary) + '</div>' : '') +
+                (x.reason ? '<div class="ai-log-reason">' + esc(x.reason) + '</div>' : '') +
+                '</div>';
+        }).join("");
+    }
+
+    async function adminStartAiImport() {
+        if (!state.isAdmin) { toast("Нет доступа", "error"); return; }
+        if (!confirm("Запустить AI импорт истории канала? Процесс может идти долго.")) return;
+        var limit = parseInt(($("#aiImportLimit") || {}).value || "0", 10) || 0;
+        var btn = $("#adminStartAiImport");
+        setBtnLoading(btn, true);
+        try {
+            await apiPost("/api/admin/portfolio-import/start", {
+                user_id: state.userId || 0,
+                init_data: tg ? tg.initData : "",
+                token: localStorage.getItem("pulse_import_web_token") || "",
+                max_posts: limit || null
+            });
+            toast("AI импорт запущен", "success");
+            await adminRefreshAiImport();
+        } catch(e) {
+            toast(e.message === "already_running" ? "Импорт уже идёт" : "Ошибка запуска", "error");
+        } finally {
+            setBtnLoading(btn, false);
+        }
+    }
+
+    function adminSaveAiApiBase() {
+        var val = (($("#aiImportApiBase") || {}).value || "").trim().replace(/\/$/, "");
+        if (val) localStorage.setItem("pulse_api_base_url", val);
+        else localStorage.removeItem("pulse_api_base_url");
+        var token = (($("#aiImportToken") || {}).value || "").trim();
+        if (token) localStorage.setItem("pulse_import_web_token", token);
+        else localStorage.removeItem("pulse_import_web_token");
+        state.config.api_base_url = val;
+        toast("Доступ сохранён");
+        adminRefreshAiImport();
+    }
+
     // --- Users Admin ---
     async function adminLoadUsers() {
         var el = $("#adminUsersList");
@@ -2240,6 +2378,9 @@
             "#adminRefreshStats":     adminLoadStats,
             "#adminRefreshOrders":    adminLoadOrders,
             "#adminRefreshPortfolio": adminLoadPortfolio,
+            "#adminRefreshAiImport":  adminRefreshAiImport,
+            "#adminStartAiImport":    adminStartAiImport,
+            "#adminSaveAiApiBase":     adminSaveAiApiBase,
             "#adminRefreshUsers":     adminLoadUsers,
             "#adminRefreshReady":     adminLoadReadyBuilds,
             "#adminSaveCompany":      adminSaveCompany,
