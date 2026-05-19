@@ -2316,6 +2316,32 @@ body {
     margin-bottom: 14px;
 }
 
+.ai-settings-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+}
+
+.ai-check-row {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+    min-height: 42px;
+    padding: 10px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--r);
+    background: var(--surface2);
+    color: var(--w70);
+    font-size: 0.72rem;
+    font-weight: 700;
+}
+
+.ai-check-row input {
+    width: 18px;
+    height: 18px;
+    accent-color: var(--accent);
+}
+
 .ai-import-status {
     background: var(--surface2);
     border: 1px solid var(--border);
@@ -2399,6 +2425,21 @@ body {
     font-weight: 700;
     color: var(--w80);
     overflow-wrap: anywhere;
+}
+
+.ai-log-meta,
+.ai-log-title {
+    margin-top: 5px;
+    font-family: var(--mono);
+    font-size: 0.62rem;
+    color: var(--w50);
+    overflow-wrap: anywhere;
+}
+
+.ai-log-title {
+    font-family: var(--font);
+    font-weight: 800;
+    color: var(--w70);
 }
 
 .ai-log-summary,

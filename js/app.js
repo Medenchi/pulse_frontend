@@ -2219,6 +2219,7 @@
 
     // --- AI Portfolio Import Admin ---
     async function adminLoadAiImport() {
+        loadAiImportSettings();
         await adminRefreshAiImport();
         if (state.admin.aiImportTimer) clearInterval(state.admin.aiImportTimer);
         state.admin.aiImportTimer = setInterval(function() {
@@ -2257,7 +2258,8 @@
             running: job.status === "pending" || job.status === "running",
             channel: "pulse_computers",
             google_ai: true,
-            model: "gemma-3-27b-it",
+            model: ((job.settings || {}).model || "gemma-3-27b-it"),
+            settings: job.settings || {},
             stats: job.stats || {},
             error: job.error,
             logs: logs || []
@@ -2277,6 +2279,8 @@
             '<div class="ai-status-grid">' +
             adminStat("Google AI", status.google_ai ? "on" : "off", "ph-bold ph-sparkle") +
             adminStat("Модель", status.model || "gemma", "ph-bold ph-brain") +
+            adminStat("Строгость", (status.settings || {}).strictness || "strict", "ph-bold ph-funnel") +
+            adminStat("Debug", (status.settings || {}).debug === false ? "off" : "on", "ph-bold ph-bug") +
             adminStat("Просмотрено", stats.seen || 0, "ph-bold ph-eye") +
             adminStat("Добавлено", stats.imported || 0, "ph-bold ph-images") +
             adminStat("Дубли", stats.skipped_existing || 0, "ph-bold ph-copy") +
@@ -2297,22 +2301,57 @@
             return '<div class="ai-log-item' + cls + '">' +
                 '<div class="ai-log-time">' + esc(fmtDate(x.created_at)) + '</div>' +
                 '<div class="ai-log-message">' + esc(x.message || '') + '</div>' +
+                (x.category ? '<div class="ai-log-meta">category=' + esc(x.category) + (typeof x.is_portfolio === "boolean" ? ' · IsPortf:' + x.is_portfolio : '') + '</div>' : '') +
+                (x.title ? '<div class="ai-log-title">' + esc(x.title) + '</div>' : '') +
                 (x.summary ? '<div class="ai-log-summary">' + esc(x.summary) + '</div>' : '') +
                 (x.reason ? '<div class="ai-log-reason">' + esc(x.reason) + '</div>' : '') +
                 '</div>';
         }).join("");
     }
 
+    function loadAiImportSettings() {
+        try {
+            var raw = localStorage.getItem("pulse_ai_import_settings");
+            var s = raw ? JSON.parse(raw) : {};
+            ($("#aiImportModel") || {}).value = s.model || "gemini-2.0-flash";
+            ($("#aiImportDelayMin") || {}).value = s.delay_min_sec != null ? s.delay_min_sec : 5;
+            ($("#aiImportDelayMax") || {}).value = s.delay_max_sec != null ? s.delay_max_sec : 10;
+            ($("#aiImportStrictness") || {}).value = s.strictness || "strict";
+            if ($("#aiImportRequireAi")) $("#aiImportRequireAi").checked = s.require_ai !== false;
+            if ($("#aiImportDebug")) $("#aiImportDebug").checked = s.debug !== false;
+        } catch(e) {}
+    }
+
+    function readAiImportSettings() {
+        var delayMin = parseFloat(($("#aiImportDelayMin") || {}).value || "5");
+        var delayMax = parseFloat(($("#aiImportDelayMax") || {}).value || "10");
+        if (!isFinite(delayMin) || delayMin < 0) delayMin = 5;
+        if (!isFinite(delayMax) || delayMax < delayMin) delayMax = delayMin;
+        var settings = {
+            provider: "google",
+            model: (($("#aiImportModel") || {}).value || "gemini-2.0-flash").trim(),
+            strictness: (($("#aiImportStrictness") || {}).value || "strict"),
+            require_ai: !$("#aiImportRequireAi") || $("#aiImportRequireAi").checked,
+            debug: !$("#aiImportDebug") || $("#aiImportDebug").checked,
+            delay_min_sec: delayMin,
+            delay_max_sec: delayMax
+        };
+        localStorage.setItem("pulse_ai_import_settings", JSON.stringify(settings));
+        return settings;
+    }
+
     async function adminStartAiImport() {
         if (!state.isAdmin) { toast("Нет доступа", "error"); return; }
         if (!confirm("Запустить AI импорт истории канала? Процесс может идти долго.")) return;
         var limit = parseInt(($("#aiImportLimit") || {}).value || "0", 10) || 0;
+        var settings = readAiImportSettings();
         var btn = $("#adminStartAiImport");
         setBtnLoading(btn, true);
         try {
             var job = await sbInsert("portfolio_import_jobs", {
                 requested_by: state.userId || 0,
-                max_posts: limit || null
+                max_posts: limit || null,
+                settings: settings
             });
             state.admin.aiImportJobId = job.id;
             toast("AI импорт запущен", "success");
