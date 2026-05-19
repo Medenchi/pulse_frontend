@@ -63,6 +63,7 @@
             readyBuilds: [],
             orders:      [],
             portfolio:   [],
+            aiImportJobId: null,
             users:       [],
             aiImportTimer: null
         }
@@ -491,6 +492,29 @@
         var r = await db.from(table).delete().eq(col, val);
         if (r.error) throw r.error;
         return true;
+    }
+
+    async function sbLatestImportJob() {
+        var result = await db
+            .from("portfolio_import_jobs")
+            .select("*")
+            .eq("requested_by", state.userId || 0)
+            .order("created_at", { ascending: false })
+            .limit(1);
+        if (result.error) throw result.error;
+        return (result.data || [])[0] || null;
+    }
+
+    async function sbImportLogs(jobId) {
+        if (!jobId) return [];
+        var result = await db
+            .from("portfolio_import_logs")
+            .select("*")
+            .eq("job_id", jobId)
+            .order("created_at", { ascending: false })
+            .limit(80);
+        if (result.error) throw result.error;
+        return result.data || [];
     }
 
     function portfolioUrl(filename) {
@@ -2195,10 +2219,6 @@
 
     // --- AI Portfolio Import Admin ---
     async function adminLoadAiImport() {
-        var apiInput = $("#aiImportApiBase");
-        if (apiInput) apiInput.value = localStorage.getItem("pulse_api_base_url") || state.config.api_base_url || "";
-        var tokenInput = $("#aiImportToken");
-        if (tokenInput) tokenInput.value = localStorage.getItem("pulse_import_web_token") || "";
         await adminRefreshAiImport();
         if (state.admin.aiImportTimer) clearInterval(state.admin.aiImportTimer);
         state.admin.aiImportTimer = setInterval(function() {
@@ -2211,13 +2231,37 @@
         var logEl = $("#aiImportLog");
         if (!statusEl || !logEl) return;
         try {
-            var status = await apiGet("/api/admin/portfolio-import/status");
+            var job = await sbLatestImportJob();
+            if (job) state.admin.aiImportJobId = job.id;
+            var logs = await sbImportLogs(state.admin.aiImportJobId);
+            var status = importJobToStatus(job, logs);
             renderAiImportStatus(status);
-            renderAiImportLog(status.logs || []);
+            renderAiImportLog(logs || []);
         } catch(e) {
-            statusEl.innerHTML = '<div class="portfolio-empty"><p>Бэкенд импорта недоступен</p></div>';
-            logEl.innerHTML = '<div class="portfolio-empty"><p>Открой админку через домен бота, где есть /api/admin/portfolio-import/*</p></div>';
+            statusEl.innerHTML = '<div class="portfolio-empty"><p>Таблицы импорта не найдены</p></div>';
+            logEl.innerHTML = '<div class="portfolio-empty"><p>Примени миграцию 002_portfolio_import_jobs.sql в Supabase SQL Editor</p></div>';
         }
+    }
+
+    function importJobToStatus(job, logs) {
+        if (!job) {
+            return {
+                running: false,
+                channel: "pulse_computers",
+                google_ai: true,
+                model: "gemma-3-27b-it",
+                stats: {}
+            };
+        }
+        return {
+            running: job.status === "pending" || job.status === "running",
+            channel: "pulse_computers",
+            google_ai: true,
+            model: "gemma-3-27b-it",
+            stats: job.stats || {},
+            error: job.error,
+            logs: logs || []
+        };
     }
 
     function renderAiImportStatus(status) {
@@ -2227,7 +2271,7 @@
         var running = !!status.running;
         el.innerHTML =
             '<div class="ai-status-row">' +
-            '<span class="ai-status-pill ' + (running ? 'running' : '') + '">' + (running ? 'Идёт импорт' : 'Остановлен') + '</span>' +
+            '<span class="ai-status-pill ' + (running ? 'running' : '') + '">' + (running ? 'Ожидает/идёт' : 'Остановлен') + '</span>' +
             '<span>Канал: @' + esc(status.channel || 'pulse_computers') + '</span>' +
             '</div>' +
             '<div class="ai-status-grid">' +
@@ -2248,9 +2292,10 @@
             return;
         }
         el.innerHTML = logs.slice().reverse().map(function(x) {
-            var cls = x.isPortfolio === false ? ' no' : (x.isPortfolio === true ? ' yes' : '');
+            var isPortfolio = x.is_portfolio;
+            var cls = isPortfolio === false ? ' no' : (isPortfolio === true ? ' yes' : '');
             return '<div class="ai-log-item' + cls + '">' +
-                '<div class="ai-log-time">' + esc(fmtDate(x.ts)) + '</div>' +
+                '<div class="ai-log-time">' + esc(fmtDate(x.created_at)) + '</div>' +
                 '<div class="ai-log-message">' + esc(x.message || '') + '</div>' +
                 (x.summary ? '<div class="ai-log-summary">' + esc(x.summary) + '</div>' : '') +
                 (x.reason ? '<div class="ai-log-reason">' + esc(x.reason) + '</div>' : '') +
@@ -2265,31 +2310,18 @@
         var btn = $("#adminStartAiImport");
         setBtnLoading(btn, true);
         try {
-            await apiPost("/api/admin/portfolio-import/start", {
-                user_id: state.userId || 0,
-                init_data: tg ? tg.initData : "",
-                token: localStorage.getItem("pulse_import_web_token") || "",
+            var job = await sbInsert("portfolio_import_jobs", {
+                requested_by: state.userId || 0,
                 max_posts: limit || null
             });
+            state.admin.aiImportJobId = job.id;
             toast("AI импорт запущен", "success");
             await adminRefreshAiImport();
         } catch(e) {
-            toast(e.message === "already_running" ? "Импорт уже идёт" : "Ошибка запуска", "error");
+            toast("Ошибка запуска. Проверь миграцию Supabase/RLS", "error");
         } finally {
             setBtnLoading(btn, false);
         }
-    }
-
-    function adminSaveAiApiBase() {
-        var val = (($("#aiImportApiBase") || {}).value || "").trim().replace(/\/$/, "");
-        if (val) localStorage.setItem("pulse_api_base_url", val);
-        else localStorage.removeItem("pulse_api_base_url");
-        var token = (($("#aiImportToken") || {}).value || "").trim();
-        if (token) localStorage.setItem("pulse_import_web_token", token);
-        else localStorage.removeItem("pulse_import_web_token");
-        state.config.api_base_url = val;
-        toast("Доступ сохранён");
-        adminRefreshAiImport();
     }
 
     // --- Users Admin ---
@@ -2380,7 +2412,6 @@
             "#adminRefreshPortfolio": adminLoadPortfolio,
             "#adminRefreshAiImport":  adminRefreshAiImport,
             "#adminStartAiImport":    adminStartAiImport,
-            "#adminSaveAiApiBase":     adminSaveAiApiBase,
             "#adminRefreshUsers":     adminLoadUsers,
             "#adminRefreshReady":     adminLoadReadyBuilds,
             "#adminSaveCompany":      adminSaveCompany,

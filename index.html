@@ -733,25 +733,15 @@
                         </button>
                     </div>
                     <p class="admin-help">
-                        Запускает парсинг <b>@pulse_computers</b>, AI-модерацию, заголовки и Pulse Summary.
+                        GitHub Pages создаёт задание в Supabase, бот на сервере сам забирает его,
+                        запускает AI-модерацию, заголовки и Pulse Summary.
                         Неподходящие посты логируются как <code>IsPortf:false</code>.
                     </p>
-                    <div class="form-group">
-                        <label>API адрес бота (если админка не на том же домене)</label>
-                        <input id="aiImportApiBase" placeholder="https://your-bot-domain.com">
-                    </div>
-                    <div class="form-group">
-                        <label>Web token (если админка открыта не из Telegram)</label>
-                        <input id="aiImportToken" type="password" placeholder="PORTFOLIO_IMPORT_WEB_TOKEN">
-                    </div>
                     <div class="ai-import-controls">
                         <div class="form-group">
                             <label>Лимит для теста</label>
                             <input id="aiImportLimit" type="number" min="0" inputmode="numeric" placeholder="0 = вся история">
                         </div>
-                        <button class="btn btn-ghost btn-block" id="adminSaveAiApiBase">
-                            <i class="ph-bold ph-link"></i> Сохранить доступ
-                        </button>
                         <button class="btn btn-primary btn-block" id="adminStartAiImport">
                             <i class="ph-bold ph-play"></i> Запустить AI импорт
                         </button>
